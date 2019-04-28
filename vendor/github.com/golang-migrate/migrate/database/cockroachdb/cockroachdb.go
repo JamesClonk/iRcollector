@@ -13,13 +13,12 @@ import (
 
 import (
 	"github.com/cockroachdb/cockroach-go/crdb"
-	"github.com/hashicorp/go-multierror"
 	"github.com/lib/pq"
 )
 
 import (
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database"
 )
 
 func init() {
@@ -86,12 +85,11 @@ func WithInstance(instance *sql.DB, config *Config) (database.Driver, error) {
 		config: config,
 	}
 
-	// ensureVersionTable is a locking operation, so we need to ensureLockTable before we ensureVersionTable.
-	if err := px.ensureLockTable(); err != nil {
+	if err := px.ensureVersionTable(); err != nil {
 		return nil, err
 	}
 
-	if err := px.ensureVersionTable(); err != nil {
+	if err := px.ensureLockTable(); err != nil {
 		return nil, err
 	}
 
@@ -150,7 +148,7 @@ func (c *CockroachDb) Close() error {
 // Locking is done manually with a separate lock table.  Implementing advisory locks in CRDB is being discussed
 // See: https://github.com/cockroachdb/cockroach/issues/13546
 func (c *CockroachDb) Lock() error {
-	err := crdb.ExecuteTx(context.Background(), c.db, nil, func(tx *sql.Tx) (err error) {
+	err := crdb.ExecuteTx(context.Background(), c.db, nil, func(tx *sql.Tx) error {
 		aid, err := database.GenerateAdvisoryLockId(c.config.DatabaseName)
 		if err != nil {
 			return err
@@ -161,11 +159,7 @@ func (c *CockroachDb) Lock() error {
 		if err != nil {
 			return database.Error{OrigErr: err, Err: "failed to fetch migration lock", Query: []byte(query)}
 		}
-		defer func() {
-			if errClose := rows.Close(); errClose != nil {
-				err = multierror.Append(err, errClose)
-			}
-		}()
+		defer rows.Close()
 
 		// If row exists at all, lock is present
 		locked := rows.Next()
@@ -271,18 +265,14 @@ func (c *CockroachDb) Version() (version int, dirty bool, err error) {
 	}
 }
 
-func (c *CockroachDb) Drop() (err error) {
+func (c *CockroachDb) Drop() error {
 	// select all tables in current schema
 	query := `SELECT table_name FROM information_schema.tables WHERE table_schema=(SELECT current_schema())`
 	tables, err := c.db.Query(query)
 	if err != nil {
 		return &database.Error{OrigErr: err, Query: []byte(query)}
 	}
-	defer func() {
-		if errClose := tables.Close(); errClose != nil {
-			err = multierror.Append(err, errClose)
-		}
-	}()
+	defer tables.Close()
 
 	// delete one table after another
 	tableNames := make([]string, 0)
@@ -304,29 +294,15 @@ func (c *CockroachDb) Drop() (err error) {
 				return &database.Error{OrigErr: err, Query: []byte(query)}
 			}
 		}
+		if err := c.ensureVersionTable(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// ensureVersionTable checks if versions table exists and, if not, creates it.
-// Note that this function locks the database, which deviates from the usual
-// convention of "caller locks" in the CockroachDb type.
-func (c *CockroachDb) ensureVersionTable() (err error) {
-	if err = c.Lock(); err != nil {
-		return err
-	}
-
-	defer func() {
-		if e := c.Unlock(); e != nil {
-			if err == nil {
-				err = e
-			} else {
-				err = multierror.Append(err, e)
-			}
-		}
-	}()
-
+func (c *CockroachDb) ensureVersionTable() error {
 	// check if migration table exists
 	var count int
 	query := `SELECT COUNT(1) FROM information_schema.tables WHERE table_name = $1 AND table_schema = (SELECT current_schema()) LIMIT 1`

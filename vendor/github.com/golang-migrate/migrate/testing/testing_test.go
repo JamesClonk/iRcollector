@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func ExampleParallelTest(t *testing.T) { // nolint:govet
+func ExampleParallelTest(t *testing.T) {
 	var isReady = func(i Instance) bool {
 		// Return true if Instance is ready to run tests.
 		// Don't block here though.

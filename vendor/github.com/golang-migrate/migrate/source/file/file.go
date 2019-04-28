@@ -9,7 +9,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/golang-migrate/migrate/v4/source"
+	"github.com/golang-migrate/migrate/source"
 )
 
 func init() {
@@ -30,10 +30,7 @@ func (f *File) Open(url string) (source.Driver, error) {
 
 	// concat host and path to restore full path
 	// host might be `.`
-	p := u.Opaque
-	if len(p) == 0 {
-		p = u.Host + u.Path
-	}
+	p := u.Host + u.Path
 
 	if len(p) == 0 {
 		// default to current directory if no path
@@ -84,24 +81,27 @@ func (f *File) Close() error {
 }
 
 func (f *File) First() (version uint, err error) {
-	if v, ok := f.migrations.First(); ok {
+	if v, ok := f.migrations.First(); !ok {
+		return 0, &os.PathError{Op: "first", Path: f.path, Err: os.ErrNotExist}
+	} else {
 		return v, nil
 	}
-	return 0, &os.PathError{Op: "first", Path: f.path, Err: os.ErrNotExist}
 }
 
 func (f *File) Prev(version uint) (prevVersion uint, err error) {
-	if v, ok := f.migrations.Prev(version); ok {
+	if v, ok := f.migrations.Prev(version); !ok {
+		return 0, &os.PathError{Op: fmt.Sprintf("prev for version %v", version), Path: f.path, Err: os.ErrNotExist}
+	} else {
 		return v, nil
 	}
-	return 0, &os.PathError{Op: fmt.Sprintf("prev for version %v", version), Path: f.path, Err: os.ErrNotExist}
 }
 
 func (f *File) Next(version uint) (nextVersion uint, err error) {
-	if v, ok := f.migrations.Next(version); ok {
+	if v, ok := f.migrations.Next(version); !ok {
+		return 0, &os.PathError{Op: fmt.Sprintf("next for version %v", version), Path: f.path, Err: os.ErrNotExist}
+	} else {
 		return v, nil
 	}
-	return 0, &os.PathError{Op: fmt.Sprintf("next for version %v", version), Path: f.path, Err: os.ErrNotExist}
 }
 
 func (f *File) ReadUp(version uint) (r io.ReadCloser, identifier string, err error) {

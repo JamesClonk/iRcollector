@@ -15,6 +15,23 @@ func main() {
 	log.Infoln("port:", port)
 	log.Infoln("log level:", level)
 
+	// client := api.New()
+	// if err := client.Login(); err != nil {
+	// 	log.Fatalf("%v", err)
+	// }
+
+	// // stats, err := client.GetCareerStats(291357)
+	// // if err != nil {
+	// // 	log.Fatalf("%v", err)
+	// // }
+	// // log.Infof("%#v", stats)
+
+	// results, err := client.GetSeriesResults(2377, 6)
+	// if err != nil {
+	// 	log.Fatalf("%v", err)
+	// }
+	// log.Infof("%#v", results)
+
 	// start listener
 	log.Fatalln(http.ListenAndServe(":"+port, router()))
 }
@@ -27,7 +44,6 @@ func router() *mux.Router {
 
 func health(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(200)
-	rw.Header().Set("X-IRcollector", "IRcollector")
 	rw.Header().Set("Content-Type", "application/json")
 	rw.Write([]byte(`{ "status": "ok" }`))
 }

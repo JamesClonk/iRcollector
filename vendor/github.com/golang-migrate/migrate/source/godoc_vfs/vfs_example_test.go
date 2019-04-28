@@ -1,8 +1,8 @@
 package godoc_vfs_test
 
 import (
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/source/godoc_vfs"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/source/godoc_vfs"
 	"golang.org/x/tools/godoc/vfs/mapfs"
 )
 
@@ -26,8 +26,5 @@ func Example_mapfs() {
 	if err != nil {
 		panic("error creating the migrations")
 	}
-	err = m.Up()
-	if err != nil {
-		panic("up failed")
-	}
+	m.Up()
 }

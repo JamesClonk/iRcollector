@@ -4,12 +4,13 @@ SHELL := /bin/bash
 all: run
 
 run: build
-	scripts/run.sh
+	./iRcollector
 
 dev: db
 	scripts/dev.sh
 
 build:
+	rm -f iRcollector || true
 	GOARCH=amd64 GOOS=linux go build -i -o iRcollector
 
 push: test build

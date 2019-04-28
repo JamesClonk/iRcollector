@@ -14,10 +14,9 @@ import (
 	"cloud.google.com/go/spanner"
 	sdb "cloud.google.com/go/spanner/admin/database/apiv1"
 
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database"
 
-	"github.com/hashicorp/go-multierror"
 	"google.golang.org/api/iterator"
 	adminpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 )
@@ -54,13 +53,6 @@ type Spanner struct {
 type DB struct {
 	admin *sdb.DatabaseAdminClient
 	data  *spanner.Client
-}
-
-func NewDB(admin sdb.DatabaseAdminClient, data spanner.Client) *DB {
-	return &DB{
-		admin: &admin,
-		data:  &data,
-	}
 }
 
 // WithInstance implements database.Driver
@@ -109,6 +101,9 @@ func (s *Spanner) Open(url string) (database.Driver, error) {
 	}
 
 	migrationsTable := purl.Query().Get("x-migrations-table")
+	if len(migrationsTable) == 0 {
+		migrationsTable = DefaultMigrationsTable
+	}
 
 	db := &DB{admin: adminClient, data: dataClient}
 	return WithInstance(db, &Config{
@@ -253,27 +248,14 @@ func (s *Spanner) Drop() error {
 		return &database.Error{OrigErr: err, Query: []byte(strings.Join(stmts, "; "))}
 	}
 
-	return nil
-}
-
-// ensureVersionTable checks if versions table exists and, if not, creates it.
-// Note that this function locks the database, which deviates from the usual
-// convention of "caller locks" in the Spanner type.
-func (s *Spanner) ensureVersionTable() (err error) {
-	if err = s.Lock(); err != nil {
+	if err := s.ensureVersionTable(); err != nil {
 		return err
 	}
 
-	defer func() {
-		if e := s.Unlock(); e != nil {
-			if err == nil {
-				err = e
-			} else {
-				err = multierror.Append(err, e)
-			}
-		}
-	}()
+	return nil
+}
 
+func (s *Spanner) ensureVersionTable() error {
 	ctx := context.Background()
 	tbl := s.config.MigrationsTable
 	iter := s.db.data.Single().Read(ctx, tbl, spanner.AllKeys(), []string{"Version"})

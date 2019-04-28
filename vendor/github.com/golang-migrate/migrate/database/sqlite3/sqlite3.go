@@ -3,15 +3,13 @@ package sqlite3
 import (
 	"database/sql"
 	"fmt"
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database"
+	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"io/ioutil"
 	nurl "net/url"
 	"strings"
-
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database"
-	"github.com/hashicorp/go-multierror"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func init() {
@@ -45,7 +43,6 @@ func WithInstance(instance *sql.DB, config *Config) (database.Driver, error) {
 	if err := instance.Ping(); err != nil {
 		return nil, err
 	}
-
 	if len(config.MigrationsTable) == 0 {
 		config.MigrationsTable = DefaultMigrationsTable
 	}
@@ -60,28 +57,12 @@ func WithInstance(instance *sql.DB, config *Config) (database.Driver, error) {
 	return mx, nil
 }
 
-// ensureVersionTable checks if versions table exists and, if not, creates it.
-// Note that this function locks the database, which deviates from the usual
-// convention of "caller locks" in the Sqlite type.
-func (m *Sqlite) ensureVersionTable() (err error) {
-	if err = m.Lock(); err != nil {
-		return err
-	}
-
-	defer func() {
-		if e := m.Unlock(); e != nil {
-			if err == nil {
-				err = e
-			} else {
-				err = multierror.Append(err, e)
-			}
-		}
-	}()
+func (m *Sqlite) ensureVersionTable() error {
 
 	query := fmt.Sprintf(`
 	CREATE TABLE IF NOT EXISTS %s (version uint64,dirty bool);
   CREATE UNIQUE INDEX IF NOT EXISTS version_unique ON %s (version);
-  `, m.config.MigrationsTable, m.config.MigrationsTable)
+  `, DefaultMigrationsTable, DefaultMigrationsTable)
 
 	if _, err := m.db.Exec(query); err != nil {
 		return err
@@ -118,17 +99,13 @@ func (m *Sqlite) Close() error {
 	return m.db.Close()
 }
 
-func (m *Sqlite) Drop() (err error) {
+func (m *Sqlite) Drop() error {
 	query := `SELECT name FROM sqlite_master WHERE type = 'table';`
 	tables, err := m.db.Query(query)
 	if err != nil {
 		return &database.Error{OrigErr: err, Query: []byte(query)}
 	}
-	defer func() {
-		if errClose := tables.Close(); errClose != nil {
-			err = multierror.Append(err, errClose)
-		}
-	}()
+	defer tables.Close()
 	tableNames := make([]string, 0)
 	for tables.Next() {
 		var tableName string
@@ -146,6 +123,9 @@ func (m *Sqlite) Drop() (err error) {
 			if err != nil {
 				return &database.Error{OrigErr: err, Query: []byte(query)}
 			}
+		}
+		if err := m.ensureVersionTable(); err != nil {
+			return err
 		}
 		query := "VACUUM"
 		_, err = m.db.Query(query)
@@ -189,9 +169,7 @@ func (m *Sqlite) executeQuery(query string) error {
 		return &database.Error{OrigErr: err, Err: "transaction start failed"}
 	}
 	if _, err := tx.Exec(query); err != nil {
-		if errRollback := tx.Rollback(); errRollback != nil {
-			err = multierror.Append(err, errRollback)
-		}
+		tx.Rollback()
 		return &database.Error{OrigErr: err, Query: []byte(query)}
 	}
 	if err := tx.Commit(); err != nil {
@@ -214,9 +192,7 @@ func (m *Sqlite) SetVersion(version int, dirty bool) error {
 	if version >= 0 {
 		query := fmt.Sprintf(`INSERT INTO %s (version, dirty) VALUES (%d, '%t')`, m.config.MigrationsTable, version, dirty)
 		if _, err := tx.Exec(query); err != nil {
-			if errRollback := tx.Rollback(); errRollback != nil {
-				err = multierror.Append(err, errRollback)
-			}
+			tx.Rollback()
 			return &database.Error{OrigErr: err, Query: []byte(query)}
 		}
 	}

@@ -45,25 +45,20 @@ func ParallelTest(t *testing.T, versions []Version, readyFn IsReadyFunc, testFn 
 				}
 
 				// make sure to remove container once done
-				defer func() {
-					if err := container.Remove(); err != nil {
-						t.Error(err)
-					}
-				}()
+				defer container.Remove()
+
 				// wait until database is ready
-				tick := time.NewTicker(1000 * time.Millisecond)
-				defer tick.Stop()
-				timeout := time.NewTimer(time.Duration(timeout) * time.Second)
-				defer timeout.Stop()
+				tick := time.Tick(1000 * time.Millisecond)
+				timeout := time.After(time.Duration(timeout) * time.Second)
 			outer:
 				for {
 					select {
-					case <-tick.C:
+					case <-tick:
 						if readyFn(container) {
 							break outer
 						}
 
-					case <-timeout.C:
+					case <-timeout:
 						t.Fatalf("Docker: Container not ready, timeout for %v.\n%s", version, containerLogs(t, container))
 					}
 				}
@@ -81,11 +76,7 @@ func containerLogs(t *testing.T, c *DockerContainer) []byte {
 		t.Error(err)
 		return nil
 	}
-	defer func() {
-		if err := r.Close(); err != nil {
-			t.Error(err)
-		}
-	}()
+	defer r.Close()
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		t.Error(err)

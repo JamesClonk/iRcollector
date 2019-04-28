@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"github.com/gocql/gocql"
-	"github.com/golang-migrate/migrate/v4/database"
-	"github.com/hashicorp/go-multierror"
+	"github.com/golang-migrate/migrate/database"
 )
 
 func init() {
@@ -119,19 +118,6 @@ func (c *Cassandra) Open(url string) (database.Driver, error) {
 			return nil, err
 		}
 		cluster.Timeout = timeout
-	}
-
-	if len(u.Query().Get("sslmode")) > 0 && len(u.Query().Get("sslrootcert")) > 0 && len(u.Query().Get("sslcert")) > 0 && len(u.Query().Get("sslkey")) > 0 {
-		if u.Query().Get("sslmode") != "disable" {
-			cluster.SslOpts = &gocql.SslOptions{
-				CaPath:   u.Query().Get("sslrootcert"),
-				CertPath: u.Query().Get("sslcert"),
-				KeyPath:  u.Query().Get("sslkey"),
-			}
-			if u.Query().Get("sslmode") == "verify-full" {
-				cluster.SslOpts.EnableHostVerification = true
-			}
-		}
 	}
 
 	session, err := cluster.CreateSession()
@@ -241,29 +227,13 @@ func (c *Cassandra) Drop() error {
 			return err
 		}
 	}
-
-	return nil
+	// Re-create the version table
+	return c.ensureVersionTable()
 }
 
-// ensureVersionTable checks if versions table exists and, if not, creates it.
-// Note that this function locks the database, which deviates from the usual
-// convention of "caller locks" in the Cassandra type.
-func (c *Cassandra) ensureVersionTable() (err error) {
-	if err = c.Lock(); err != nil {
-		return err
-	}
-
-	defer func() {
-		if e := c.Unlock(); e != nil {
-			if err == nil {
-				err = e
-			} else {
-				err = multierror.Append(err, e)
-			}
-		}
-	}()
-
-	err = c.session.Query(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (version bigint, dirty boolean, PRIMARY KEY(version))", c.config.MigrationsTable)).Exec()
+// Ensure version table exists
+func (c *Cassandra) ensureVersionTable() error {
+	err := c.session.Query(fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (version bigint, dirty boolean, PRIMARY KEY(version))", c.config.MigrationsTable)).Exec()
 	if err != nil {
 		return err
 	}

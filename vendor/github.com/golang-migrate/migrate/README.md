@@ -1,9 +1,9 @@
-[![Build Status](https://img.shields.io/travis/com/golang-migrate/migrate/master.svg)](https://travis-ci.com/golang-migrate/migrate)
+[![Build Status](https://img.shields.io/travis/golang-migrate/migrate/master.svg)](https://travis-ci.org/golang-migrate/migrate)
 [![GoDoc](https://godoc.org/github.com/golang-migrate/migrate?status.svg)](https://godoc.org/github.com/golang-migrate/migrate)
 [![Coverage Status](https://img.shields.io/coveralls/github/golang-migrate/migrate/master.svg)](https://coveralls.io/github/golang-migrate/migrate?branch=master)
 [![packagecloud.io](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/golang-migrate/migrate?filter=debs)
 [![Docker Pulls](https://img.shields.io/docker/pulls/migrate/migrate.svg)](https://hub.docker.com/r/migrate/migrate/)
-![Supported Go Versions](https://img.shields.io/badge/Go-1.11%2C%201.12-lightgrey.svg)
+![Supported Go Versions](https://img.shields.io/badge/Go-1.10%2C%201.11-lightgrey.svg)
 [![GitHub Release](https://img.shields.io/github/release/golang-migrate/migrate.svg)](https://github.com/golang-migrate/migrate/releases)
 
 
@@ -17,7 +17,11 @@ __Database migrations written in Go. Use as [CLI](#cli-usage) or import as [libr
    (Keeps the drivers lightweight, too.)
  * Database drivers don't assume things or try to correct user input. When in doubt, fail.
 
+
+Looking for [v1](https://github.com/golang-migrate/migrate/tree/v1)?
+
 Forked from [mattes/migrate](https://github.com/mattes/migrate)
+
 
 ## Databases
 
@@ -30,13 +34,12 @@ Database drivers run migrations. [Add a new database?](database/driver.go)
   * [SQLite](database/sqlite3) ([todo #165](https://github.com/mattes/migrate/issues/165))
   * [MySQL/ MariaDB](database/mysql)
   * [Neo4j](database/neo4j) ([todo #167](https://github.com/mattes/migrate/issues/167))
-  * [MongoDB](database/mongodb)
+  * [MongoDB](database/mongodb) ([todo #169](https://github.com/mattes/migrate/issues/169))
   * [CrateDB](database/crate) ([todo #170](https://github.com/mattes/migrate/issues/170))
   * [Shell](database/shell) ([todo #171](https://github.com/mattes/migrate/issues/171))
   * [Google Cloud Spanner](database/spanner)
   * [CockroachDB](database/cockroachdb)
   * [ClickHouse](database/clickhouse)
-  * [Firebird](database/firebird)
 
 ### Database URLs
 
@@ -47,7 +50,7 @@ Any [reserved URL characters](https://en.wikipedia.org/wiki/Percent-encoding#Per
 Explicitly, the following characters need to be escaped:
 `!`, `#`, `$`, `%`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `/`, `:`, `;`, `=`, `?`, `@`, `[`, `]`
 
-It's easiest to always run the URL parts of your DB connection URL (e.g. username, password, etc) through an URL encoder. See the example Python snippets below:
+It's easiest to always run the URL parts of your DB connection URL (e.g. username, password, etc) through an URL encoder. See the example Python helpers below:
 ```bash
 $ python3 -c 'import urllib.parse; print(urllib.parse.quote(input("String to encode: "), ""))'
 String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
@@ -65,7 +68,6 @@ Source drivers read migrations from local or remote sources. [Add a new source?]
   * [Filesystem](source/file) - read from fileystem
   * [Go-Bindata](source/go_bindata) - read from embedded binary data ([jteeuwen/go-bindata](https://github.com/jteeuwen/go-bindata))
   * [Github](source/github) - read from remote Github repositories
-  * [Gitlab](source/gitlab) - read from remote Gitlab repositories
   * [AWS S3](source/aws_s3) - read from Amazon Web Services S3
   * [Google Cloud Storage](source/google_cloud_storage) - read from Google Cloud Platform Storage
 
@@ -88,14 +90,14 @@ $ migrate -source file://path/to/migrations -database postgres://localhost:5432/
 ### Docker usage
 
 ```
-$ docker run -v {{ migration dir }}:/migrations --network host migrate/migrate
+$ docker run -v {{ migration dir }}:/migrations --network host migrate/migrate 
     -path=/migrations/ -database postgres://localhost:5432/database up 2
 ```
 
 ## Use in your Go project
 
- * API is stable and frozen for this release (v3 & v4).
- * Uses [Go modules](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more) to manage dependencies.
+ * API is stable and frozen for this release (v3.x).
+ * Uses [dep](https://github.com/golang/dep) to manage dependencies
  * To help prevent database corruptions, it supports graceful stops via `GracefulStop chan bool`.
  * Bring your own logger.
  * Uses `io.Reader` streams internally for low memory overhead.
@@ -105,9 +107,9 @@ __[Go Documentation](https://godoc.org/github.com/golang-migrate/migrate)__
 
 ```go
 import (
-    "github.com/golang-migrate/migrate/v4"
-    _ "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/github"
+    "github.com/golang-migrate/migrate"
+    _ "github.com/golang-migrate/migrate/database/postgres"
+    _ "github.com/golang-migrate/migrate/source/github"
 )
 
 func main() {
@@ -124,9 +126,9 @@ Want to use an existing database client?
 import (
     "database/sql"
     _ "github.com/lib/pq"
-    "github.com/golang-migrate/migrate/v4"
-    "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
+    "github.com/golang-migrate/migrate"
+    "github.com/golang-migrate/migrate/database/postgres"
+    _ "github.com/golang-migrate/migrate/source/file"
 )
 
 func main() {
@@ -150,13 +152,7 @@ Each migration has an up and down migration. [Why?](FAQ.md#why-two-separate-file
 
 [Best practices: How to write migrations.](MIGRATIONS.md)
 
-## Versions
 
-Version | Supported? | Import | Notes
---------|------------|--------|------
-**master** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | New features and bug fixes arrive here first |
-**v4** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | Used for stable releases |
-**v3** | :x: | `import "github.com/golang-migrate/migrate"` (with package manager) or `import "gopkg.in/golang-migrate/migrate.v3"` (not recommended) | **DO NOT USE** - No longer supported |
 
 ## Development and Contributing
 
