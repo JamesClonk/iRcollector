@@ -20,6 +20,14 @@ if [ -z "${APC_SPACE}" ]; then
 	echo "APC_SPACE must be set!"
 	exit 1
 fi
+if [ -z "${IR_USERNAME}" ]; then
+	echo "IR_USERNAME must be set!"
+	exit 1
+fi
+if [ -z "${IR_PASSWORD}" ]; then
+	echo "IR_PASSWORD must be set!"
+	exit 1
+fi
 
 # =============================================================================================
 if [[ "$(basename $PWD)" == "scripts" ]]; then
