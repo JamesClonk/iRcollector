@@ -3,7 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/JamesClonk/iRcollector/log"
 )
 
 type SeriesResult struct {
@@ -27,8 +30,7 @@ func (c *Client) GetSeriesResults(seriesID, raceweek int) ([]SeriesResult, error
 
 	/*
 	   {
-	   "m":
-	   	{"1":"start_time","2":"carclassid","3":"trackid","4":"sessionid","5":"subsessionid","6":"officialsession","7":"sizeoffield","8":"strengthoffield"},
+	   "m":{"1":"start_time","2":"carclassid","3":"trackid","4":"sessionid","5":"subsessionid","6":"officialsession","7":"sizeoffield","8":"strengthoffield"},
 	   "d":[
 	   	{"1":1556397900000,"2":4,"3":266,"4":110632189,"5":26906680,"6":1,"7":13,"8":2169},
 	   	{"1":1556282700000,"2":4,"3":266,"4":110564215,"5":26891215,"6":0,"7":4,"8":3291},
@@ -36,6 +38,12 @@ func (c *Client) GetSeriesResults(seriesID, raceweek int) ([]SeriesResult, error
 	   	]
 	   }
 	*/
+	// verify header "m" first, to make sure we still make correct assumptions about output format
+	if !strings.Contains(string(data), `"m":{"1":"start_time","2":"carclassid","3":"trackid","4":"sessionid","5":"subsessionid","6":"officialsession","7":"sizeoffield","8":"strengthoffield"}`) {
+		log.Errorln("header format of [GetSeriesRaceResults] is not correct anymore!")
+		log.Fatalf("%v", string(data))
+	}
+
 	var tmp map[string]interface{}
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return nil, err
