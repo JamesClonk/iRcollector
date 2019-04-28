@@ -33,7 +33,7 @@ start-db:
 		-e POSTGRES_PASSWORD=dev-secret \
 		-e POSTGRES_DB=ircollector_db \
 		-p "5432:5432" \
-		-d postgres:10-alpine
+		-d postgres:9-alpine
 	scripts/db.sh
 
 stop-db:
