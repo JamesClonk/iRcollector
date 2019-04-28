@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/JamesClonk/iRcollector/api"
 	"github.com/JamesClonk/iRcollector/env"
 	"github.com/JamesClonk/iRcollector/log"
 	"github.com/gorilla/mux"
@@ -15,22 +16,22 @@ func main() {
 	log.Infoln("port:", port)
 	log.Infoln("log level:", level)
 
-	// client := api.New()
-	// if err := client.Login(); err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
+	client := api.New()
+	if err := client.Login(); err != nil {
+		log.Fatalf("%v", err)
+	}
 
-	// // stats, err := client.GetCareerStats(291357)
-	// // if err != nil {
-	// // 	log.Fatalf("%v", err)
-	// // }
-	// // log.Infof("%#v", stats)
+	stats, err := client.GetCareerStats(291357)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	log.Infof("%#v", stats)
 
-	// results, err := client.GetSeriesResults(2377, 6)
-	// if err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
-	// log.Infof("%#v", results)
+	results, err := client.GetSeriesResults(2377, 6)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	log.Infof("%#v", results)
 
 	// start listener
 	log.Fatalln(http.ListenAndServe(":"+port, router()))
