@@ -4,7 +4,7 @@ SHELL := /bin/bash
 all: run
 
 run: build
-	./iRcollector
+	scripts/run.sh
 
 dev: db
 	scripts/dev.sh

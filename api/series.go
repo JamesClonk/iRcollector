@@ -3,21 +3,105 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/JamesClonk/iRcollector/log"
 )
 
+/*
+	seriesobj={
+		seasonID:2391,
+		ignoreLicenseForPractice:true,
+		groupid:0,
+		category:"Road",
+		catid:2,
+		allowedLicense:0,
+		seasonName:"iRacing Formula 3.5 Championship - 2019 Season 2",
+		seasonName_short:"2019 Season 2",
+		seriesName:"iRacing Formula 3.5 Championship",
+		seriesName_short:"iRacing Formula 3.5 Championship",
+		banner_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/banner.jpg",
+		col_gray_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/whats_hot.jpg",
+		col_color_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/panel_list.jpg",
+		exp_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/logo.jpg",
+		header_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/title_list.gif",
+		allowedLicGroups:[],
+		allowedlicenses:[],
+		minlic:null,
+		maxlic:null,
+		serieslicgroup:null,
+		memberlicgroup:5,
+		memberliclevel:20,
+		cars:SeriesPage.cars_arr,
+		tracks:SeriesPage.tracks_arr,
+		tracks_schedule:tracks_schedule_arr,
+		content:SeriesPage.cars_arr.concat(SeriesPage.tracks_arr),
+		unowned:unowned,
+		preselect:preselect_arr,
+		raceweek:6,
+		trackid:250,
+		trackpkgID:185,
+		trackname:"Nürburgring Grand-Prix-Strecke",
+		trackconfig:"Grand Prix",
+		heatracing:false
+	};
+*/
+type Series struct {
+	SeasonID        int    `json:"seasonID"`
+	Category        string `json:"category"`
+	CategoryID      int    `json:"catid"`
+	SeasonName      string `json:"seasonName"`
+	SeasonNameShort string `json:"seasonName_short"`
+	SeriesName      string `json:"seriesName"`
+	SeriesNameShort string `json:"seriesName_short"`
+	BannerImage     string `json:"banner_img"`
+	PanelImage      string `json:"col_color_img"`
+	LogoImage       string `json:"exp_img"`
+	RaceWeek        int    `json:"raceweek"`
+	TrackID         int    `json:"trackid"`
+	TrackName       string `json:"trackname"`
+	TrackConfig     string `json:"trackconfig"`
+}
+
 type SeriesResult struct {
-	StartTime       time.Time
-	CarClassID      int
-	TrackID         int
-	SessionID       int
-	SubsessionID    int
-	Official        bool
-	SizeOfField     int
-	StrengthOfField int
+	StartTime       time.Time `json:"start_time"`
+	CarClassID      int       `json:"carclassid"`
+	TrackID         int       `json:"trackid"`
+	SessionID       int       `json:"sessionid"`
+	SubsessionID    int       `json:"subsessionid"`
+	Official        bool      `json:"officialsession"`
+	SizeOfField     int       `json:"sizeoffield"`
+	StrengthOfField int       `json:"strengthoffield"`
+}
+
+func (c *Client) GetCurrentSeries() ([]Series, error) {
+	data, err := c.Get("https://members.iracing.com/membersite/member/Series.do")
+	if err != nil {
+		return nil, err
+	}
+
+	// use ugly regexp to jsonify javascript code
+	seriesRx := regexp.MustCompile(`seriesobj=([^;]*);`)
+	elementRx := regexp.MustCompile(`[\s+]([[:word:]]+)(:.+\n)`)
+	removeRx := regexp.MustCompile(`"[[:word:]]+":[[:alpha:]]+.*,\n`)
+
+	series := make([]Series, 0)
+	for _, match := range seriesRx.FindAllSubmatch(data, -1) {
+		if len(match) == 2 {
+			jsonObject := elementRx.ReplaceAll(match[1], []byte(`"${1}"${2}`))
+			jsonObject = removeRx.ReplaceAll(jsonObject, nil)
+
+			var serie Series
+			if err := json.Unmarshal(jsonObject, &serie); err != nil {
+				log.Errorf("could not parse series json object: %s", jsonObject)
+				return nil, err
+			}
+			series = append(series, serie)
+		}
+	}
+	return series, nil
 }
 
 func (c *Client) GetSeriesResults(seriesID, raceweek int) ([]SeriesResult, error) {
@@ -54,7 +138,7 @@ func (c *Client) GetSeriesResults(seriesID, raceweek int) ([]SeriesResult, error
 		r := d.(map[string]interface{})
 
 		// ugly json struct needs ugly code
-		result := SeriesResult{}
+		var result SeriesResult
 		result.StartTime = time.Unix(int64(r["1"].(float64))/1000, 0)
 		result.CarClassID = int(r["2"].(float64))
 		result.TrackID = int(r["3"].(float64))

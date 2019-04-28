@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/JamesClonk/iRcollector/api"
 	"github.com/JamesClonk/iRcollector/env"
@@ -21,17 +22,28 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	stats, err := client.GetCareerStats(291357)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	log.Infof("%#v", stats)
+	// stats, err := client.GetCareerStats(291357)
+	// if err != nil {
+	// 	log.Fatalf("%v", err)
+	// }
+	// log.Infof("%#v", stats)
 
-	results, err := client.GetSeriesResults(2377, 6)
+	series, err := client.GetCurrentSeries()
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	log.Infof("%#v", results)
+	for _, serie := range series {
+		if strings.Contains(strings.ToLower(serie.SeriesNameShort), "formula 3.5") ||
+			strings.Contains(strings.ToLower(serie.SeriesNameShort), "pro mazda") {
+			log.Infof("%#v", serie)
+
+			results, err := client.GetSeriesResults(serie.SeasonID, serie.RaceWeek)
+			if err != nil {
+				log.Fatalf("%v", err)
+			}
+			log.Infof("%#v", results)
+		}
+	}
 
 	// start listener
 	log.Fatalln(http.ListenAndServe(":"+port, router()))
