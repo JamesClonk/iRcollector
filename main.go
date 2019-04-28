@@ -22,12 +22,6 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	// stats, err := client.GetCareerStats(291357)
-	// if err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
-	// log.Infof("%#v", stats)
-
 	series, err := client.GetCurrentSeries()
 	if err != nil {
 		log.Fatalf("%v", err)
