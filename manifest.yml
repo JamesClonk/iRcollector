@@ -1,0 +1,27 @@
+---
+# See manifest.yml documentation available at:
+# https://docs.developer.swisscom.com/devguide/deploy-apps/manifest.html
+
+applications:
+- name: iRcollector
+  memory: 32M
+  disk_quota: 64M
+  instances: 1
+
+  routes:
+  - route: ircollector.scapp.io
+  - route: ircollector.applicationcloud.io
+  services:
+  - ircollector_db
+
+  buildpacks:
+  - go_buildpack
+  health-check-type: http
+  health-check-http-endpoint: /health
+  command: iRcollector
+  path: .
+
+  env:
+    LOG_LEVEL: debug
+    IR_USERNAME: ((ir_username))
+    IR_PASSWORD: ((ir_password))

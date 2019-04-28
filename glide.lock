@@ -1,0 +1,32 @@
+hash: 2e7bf103b1bad9e75c3e1984d90c70660ee77fb5999f642524a47a6ab7a328b7
+updated: 2019-04-28T12:40:18.285103207+02:00
+imports:
+- name: github.com/cloudfoundry-community/go-cfenv
+  version: 20ea9de4dd5d3e052f2df72aab439453d7445f31
+- name: github.com/golang-migrate/migrate
+  version: 10e2545ceba73593a6e85f9391b51b6ff0092510
+- name: github.com/gorilla/mux
+  version: a7962380ca08b5a188038c69871b8d3fbdf31e89
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
+- name: github.com/lib/pq
+  version: 51e2106eed1cea199c802d2a49e91e2491b02056
+- name: github.com/sirupsen/logrus
+  version: 8bdbc7bcc01dcbb8ec23dc8a28e332258d25251f
+- name: golang.org/x/sys
+  version: a129542de9ae0895210abff9c95d67a1f33cb93d
+  subpackages:
+  - unix
+testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
+  subpackages:
+  - assert

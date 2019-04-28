@@ -1,0 +1,27 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+    - image: circleci/golang:1.10
+
+    branches:
+      ignore:
+      - develop
+
+    working_directory: /go/src/github.com/JamesClonk/iRcollector
+
+    steps:
+    - checkout
+    # test
+    - run: make test
+    # deploy to Swisscom Application Cloud
+    - deploy:
+        name: appcloud push
+        command: |
+          if [ "${CIRCLE_BRANCH}" == "master" ]; then
+            chmod +x scripts/deploy.sh
+            scripts/deploy.sh
+          fi
