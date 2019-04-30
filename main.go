@@ -22,16 +22,16 @@ func main() {
 		log.Fatalf("%v", err)
 	}
 
-	series, err := client.GetCurrentSeries()
+	seasons, err := client.GetCurrentSeasons()
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	for _, serie := range series {
-		if strings.Contains(strings.ToLower(serie.SeriesNameShort), "formula 3.5") ||
-			strings.Contains(strings.ToLower(serie.SeriesNameShort), "pro mazda") {
-			log.Infof("%#v", serie)
+	for _, season := range seasons {
+		if strings.Contains(strings.ToLower(season.SeriesNameShort), "formula 3.5") ||
+			strings.Contains(strings.ToLower(season.SeriesNameShort), "pro mazda") {
+			log.Infof("%#v", season)
 
-			results, err := client.GetSeriesResults(serie.SeasonID, serie.RaceWeek)
+			results, err := client.GetRaceWeekResults(season.SeasonID, season.RaceWeek)
 			if err != nil {
 				log.Fatalf("%v", err)
 			}
