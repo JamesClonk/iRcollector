@@ -53,6 +53,6 @@ func (c *Collector) Run() {
 			}
 		}
 
-		time.Sleep(33 * time.Second)
+		time.Sleep(77 * time.Minute)
 	}
 }
