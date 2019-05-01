@@ -8,6 +8,7 @@ import (
 )
 
 func (c *Client) GetCurrentSeasons() ([]Season, error) {
+	log.Debugln("get current seasons ...")
 	data, err := c.Get("https://members.iracing.com/membersite/member/Series.do")
 	if err != nil {
 		return nil, err

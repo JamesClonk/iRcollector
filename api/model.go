@@ -59,7 +59,6 @@ type CareerStats struct {
 	};
 */
 type Season struct {
-	//SeriesID        int    `json:"seriesID"` // foreign-key to Series
 	SeasonID        int    `json:"seasonID"`
 	Category        string `json:"category"`
 	CategoryID      int    `json:"catid"`
@@ -74,12 +73,6 @@ type Season struct {
 	TrackID         int    `json:"trackid"`
 	TrackName       string `json:"trackname"`
 	TrackConfig     string `json:"trackconfig"`
-}
-
-type Series struct {
-	SeriesID        int    `json:"seriesID"`
-	SeriesName      string `json:"seriesName"`
-	SeriesNameShort string `json:"seriesName_short"`
 }
 
 type RaceWeekResult struct {

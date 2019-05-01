@@ -10,6 +10,8 @@ import (
 )
 
 func (c *Client) GetRaceWeekResults(seasonID, raceweek int) ([]RaceWeekResult, error) {
+	log.Debugf("get raceweek [%d] results of season [%d] ...", raceweek, seasonID)
+
 	data, err := c.Get(
 		fmt.Sprintf("https://members.iracing.com/memberstats/member/GetSeriesRaceResults?seasonid=%d&raceweek=%d&invokedBy=SeriesRaceResults",
 			seasonID, raceweek))

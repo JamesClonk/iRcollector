@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/JamesClonk/iRcollector/log"
 )
 
 func (c *Client) GetCareerStats(id int) ([]CareerStats, error) {
+	log.Debugf("get career stats of [%d] ...", id)
+
 	data, err := c.Get(fmt.Sprintf("https://members.iracing.com/memberstats/member/GetCareerStats?custid=%d", id))
 	if err != nil {
 		return nil, err

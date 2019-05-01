@@ -1,5 +1,5 @@
-hash: 0346c8fe83c52f7ab925be7650bbb18ddcfb2ba3dbd3b532f30512256c5f6ab4
-updated: 2019-04-28T16:31:49.633037293+02:00
+hash: 4c5e7006037c8e9e93b3087669ecb0345e7f032669bcbcefe73e3a55b785ebcf
+updated: 2019-05-01T20:33:00.673916525+02:00
 imports:
 - name: github.com/cloudfoundry-community/go-cfenv
   version: f920e9562d5f951cbf11785728f67258c38a10d0
@@ -12,6 +12,10 @@ imports:
   - source/file
 - name: github.com/gorilla/mux
   version: c5c6c98bc25355028a63748a498942a6398ccd22
+- name: github.com/jmoiron/sqlx
+  version: d161d7a76b5661016ad0b085869f77fd410f3e6a
+  subpackages:
+  - reflectx
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
 - name: github.com/lib/pq
@@ -28,7 +32,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/sys
-  version: a129542de9ae0895210abff9c95d67a1f33cb93d
+  version: d89cdac9e8725f2aefce25fcbfef41134c9ad412
   subpackages:
   - unix
   - windows

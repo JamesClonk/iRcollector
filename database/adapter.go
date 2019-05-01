@@ -1,22 +1,22 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/JamesClonk/iRcollector/env"
 	"github.com/JamesClonk/iRcollector/log"
 	cfenv "github.com/cloudfoundry-community/go-cfenv"
+	"github.com/jmoiron/sqlx"
 )
 
 type Adapter interface {
-	GetDatabase() *sql.DB
+	GetDatabase() *sqlx.DB
 	GetURI() string
 	GetType() string
 	RunMigrations(string) error
 }
 
-func NewAdapter() (db Adapter) {
+func NewAdapter() (adapter Adapter) {
 	var databaseUri string
 
 	// check for VCAP_SERVICES first
@@ -39,12 +39,11 @@ func NewAdapter() (db Adapter) {
 	}
 
 	// setup database adapter
-	db = newPostgresAdapter(databaseUri)
+	adapter = newPostgresAdapter(databaseUri)
 
 	// panic if no database adapter was set up
-	if db == nil {
+	if adapter == nil {
 		log.Fatalln("could not set up database adapter")
 	}
-
-	return db
+	return adapter
 }

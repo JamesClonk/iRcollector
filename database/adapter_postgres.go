@@ -1,24 +1,24 @@
 package database
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/JamesClonk/iRcollector/log"
 	"github.com/golang-migrate/migrate"
 	"github.com/golang-migrate/migrate/database/postgres"
 	_ "github.com/golang-migrate/migrate/source/file"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 type PostgresAdapter struct {
-	Database *sql.DB
+	Database *sqlx.DB
 	URI      string
 	Type     string
 }
 
 func newPostgresAdapter(uri string) *PostgresAdapter {
-	db, err := sql.Open("postgres", uri)
+	db, err := sqlx.Open("postgres", uri)
 	if err != nil {
 		panic(err)
 	}
@@ -29,7 +29,7 @@ func newPostgresAdapter(uri string) *PostgresAdapter {
 	}
 }
 
-func (adapter *PostgresAdapter) GetDatabase() *sql.DB {
+func (adapter *PostgresAdapter) GetDatabase() *sqlx.DB {
 	return adapter.Database
 }
 
@@ -42,7 +42,7 @@ func (adapter *PostgresAdapter) GetType() string {
 }
 
 func (adapter *PostgresAdapter) RunMigrations(basePath string) error {
-	driver, err := postgres.WithInstance(adapter.Database, &postgres.Config{})
+	driver, err := postgres.WithInstance(adapter.Database.DB, &postgres.Config{})
 	if err != nil {
 		log.Errorln("could not create database migration driver")
 		log.Fatalf("%v", err)
@@ -54,5 +54,6 @@ func (adapter *PostgresAdapter) RunMigrations(basePath string) error {
 		log.Fatalf("%v", err)
 	}
 
+	log.Infoln("running postgres database migrations - up ...")
 	return m.Up()
 }

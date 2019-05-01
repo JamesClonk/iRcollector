@@ -2,8 +2,13 @@
 CREATE TABLE IF NOT EXISTS series (
     pk_series_id    SERIAL PRIMARY KEY,
     name            TEXT NOT NULL UNIQUE,
-    short_name      TEXT NOT NULL UNIQUE
+    short_name      TEXT NOT NULL UNIQUE,
+    regex           TEXT NOT NULL UNIQUE
 );
+INSERT INTO series (name, short_name, regex)
+VALUES ('iRacing Formula 3.5 Championship', 'iRacing Formula 3.5 Championship', 'Formula 3\.5');
+INSERT INTO series (name, short_name, regex)
+VALUES ('Pro Mazda Championship', 'Pro Mazda Championship', 'Pro Mazda');
 
 -- seasons
 CREATE TABLE IF NOT EXISTS seasons (
