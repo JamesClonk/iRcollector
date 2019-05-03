@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS raceweeks (
 
 -- raceweek_results
 CREATE TABLE IF NOT EXISTS raceweek_results (
-    starttime       TIMESTAMP NOT NULL,
+    starttime       TIMESTAMPTZ NOT NULL,
     car_class_id    INTEGER NOT NULL,
     track_id        INTEGER NOT NULL,
     session_id      INTEGER NOT NULL UNIQUE,

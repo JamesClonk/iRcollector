@@ -32,28 +32,6 @@ func main() {
 	c := collector.New(db)
 	go c.Run()
 
-	// client := api.New()
-	// if err := client.Login(); err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
-
-	// seasons, err := client.GetCurrentSeasons()
-	// if err != nil {
-	// 	log.Fatalf("%v", err)
-	// }
-	// for _, season := range seasons {
-	// 	if strings.Contains(strings.ToLower(season.SeriesNameShort), "formula 3.5") ||
-	// 		strings.Contains(strings.ToLower(season.SeriesNameShort), "pro mazda") {
-	// 		log.Infof("%#v", season)
-
-	// 		results, err := client.GetRaceWeekResults(season.SeasonID, season.RaceWeek)
-	// 		if err != nil {
-	// 			log.Fatalf("%v", err)
-	// 		}
-	// 		log.Infof("%#v", results)
-	// 	}
-	// }
-
 	// start listener
 	log.Fatalln(http.ListenAndServe(":"+port, router()))
 }

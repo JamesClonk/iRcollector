@@ -1,4 +1,4 @@
-.PHONY: run dev build push setup glide test db start-db stop-db
+.PHONY: run dev build push setup glide test db start-db stop-db connect
 SHELL := /bin/bash
 
 all: run
@@ -40,3 +40,6 @@ start-db:
 stop-db:
 	docker kill ircollector_db || true
 	docker rm -f ircollector_db || true
+
+connect:
+	docker exec -it ircollector_db psql -U dev-user -d ircollector_db
