@@ -4,8 +4,8 @@
 
 applications:
 - name: iRcollector
-  memory: 32M
-  disk_quota: 64M
+  memory: 64M
+  disk_quota: 128M
   instances: 1
 
   routes:
