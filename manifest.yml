@@ -25,5 +25,5 @@ applications:
     LOG_LEVEL: debug
     IR_USERNAME: ((ir_username))
     IR_PASSWORD: ((ir_password))
-    AUTH_USERNAME: ((auth_password))
+    AUTH_USERNAME: ((auth_username))
     AUTH_PASSWORD: ((auth_password))
