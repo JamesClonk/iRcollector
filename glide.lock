@@ -1,5 +1,5 @@
-hash: 4c5e7006037c8e9e93b3087669ecb0345e7f032669bcbcefe73e3a55b785ebcf
-updated: 2019-05-01T20:33:00.673916525+02:00
+hash: 1709deec10bb0202c175fb3504f18e91232da8e43b140ba08c9df2050f1c0381
+updated: 2019-05-04T15:12:04.287993617+02:00
 imports:
 - name: github.com/cloudfoundry-community/go-cfenv
   version: f920e9562d5f951cbf11785728f67258c38a10d0
@@ -19,7 +19,7 @@ imports:
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
 - name: github.com/lib/pq
-  version: 51e2106eed1cea199c802d2a49e91e2491b02056
+  version: bc6a3c0594130b1e34005880bc600b6d3f49fa7f
   subpackages:
   - oid
   - scram
@@ -27,12 +27,16 @@ imports:
   version: 3536a929edddb9a5b34bd6861dc4a9647cb459fe
 - name: github.com/sirupsen/logrus
   version: e1e72e9de974bd926e5c56f83753fba2df402ce5
+- name: go.uber.org/ratelimit
+  version: c15da02342779cb6dc027fc95ee2277787698f36
+  subpackages:
+  - internal/clock
 - name: golang.org/x/crypto
   version: a29dc8fdc73485234dbef99ebedb95d2eced08de
   subpackages:
   - ssh/terminal
 - name: golang.org/x/sys
-  version: d89cdac9e8725f2aefce25fcbfef41134c9ad412
+  version: a43fa875dd822b81eb6d2ad538bc1f4caba169bd
   subpackages:
   - unix
   - windows

@@ -6,6 +6,7 @@ import (
 
 type Database interface {
 	GetSeries() ([]Series, error)
+	GetSeasonsBySeriesID(int) ([]Season, error)
 	UpsertSeason(Season) error
 	UpsertTrack(Track) error
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
@@ -38,6 +39,28 @@ func (db *database) GetSeries() ([]Series, error) {
 	return series, nil
 }
 
+func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
+	seasons := make([]Season, 0)
+	if err := db.Select(&seasons, `
+		select
+			s.pk_season_id,
+			s.fk_series_id,
+			s.year,
+			s.quarter,
+			s.category,
+			s.name,
+			s.short_name,
+			s.banner_image,
+			s.panel_image,
+			s.logo_image,
+		from seasons s
+		where s.fk_series_id = $1
+		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
+		return nil, err
+	}
+	return seasons, nil
+}
+
 func (db *database) UpsertSeason(season Season) error {
 	tx, err := db.Beginx()
 	if err != nil {
@@ -46,12 +69,12 @@ func (db *database) UpsertSeason(season Season) error {
 
 	stmt, err := tx.Preparex(`
 		insert into seasons
-			(pk_season_id, fk_series_id, year, season, category, name, short_name, banner_image, panel_image, logo_image)
+			(pk_season_id, fk_series_id, year, quarter, category, name, short_name, banner_image, panel_image, logo_image)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		on conflict (pk_season_id) do update
 		set fk_series_id = excluded.fk_series_id,
 			year = excluded.year,
-			season = excluded.season,
+			quarter = excluded.quarter,
 			category = excluded.category,
 			name = excluded.name,
 			short_name = excluded.short_name,
@@ -65,7 +88,7 @@ func (db *database) UpsertSeason(season Season) error {
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(
-		season.SeasonID, season.SeriesID, season.Year, season.Season,
+		season.SeasonID, season.SeriesID, season.Year, season.Quarter,
 		season.Category, season.SeasonName, season.SeasonNameShort,
 		season.BannerImage, season.PanelImage, season.LogoImage); err != nil {
 		tx.Rollback()

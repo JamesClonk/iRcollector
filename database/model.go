@@ -25,7 +25,7 @@ type Season struct {
 	SeriesID        int    `db:"fk_series_id"` // foreign-key to Series.SeriesID
 	SeasonID        int    `db:"pk_season_id"`
 	Year            int    `db:"year"`
-	Season          int    `db:"season"`
+	Quarter         int    `db:"quarter"`
 	Category        string `db:"category"`
 	SeasonName      string `db:"name"`
 	SeasonNameShort string `db:"short_name"`

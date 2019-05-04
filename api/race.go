@@ -31,8 +31,7 @@ func (c *Client) GetRaceWeekResults(seasonID, raceweek int) ([]RaceWeekResult, e
 	*/
 	// verify header "m" first, to make sure we still make correct assumptions about output format
 	if !strings.Contains(string(data), `"m":{"1":"start_time","2":"carclassid","3":"trackid","4":"sessionid","5":"subsessionid","6":"officialsession","7":"sizeoffield","8":"strengthoffield"}`) {
-		log.Errorln("header format of [GetSeriesRaceResults] is not correct anymore!")
-		log.Fatalf("%v", string(data))
+		return nil, fmt.Errorf("header format of [GetSeriesRaceResults] is not correct: %v", string(data))
 	}
 
 	var tmp map[string]interface{}

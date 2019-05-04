@@ -11,12 +11,21 @@ import (
 )
 
 type Collector struct {
-	db database.Database
+	client *api.Client
+	db     database.Database
 }
 
 func New(db database.Database) *Collector {
 	return &Collector{
-		db: db,
+		client: api.New(),
+		db:     db,
+	}
+}
+
+func (c *Collector) LoginClient() {
+	if err := c.client.Login(); err != nil {
+		log.Errorln("api client login failure")
+		log.Fatalf("%v", err)
 	}
 }
 
@@ -30,14 +39,8 @@ func (c *Collector) Run() {
 			log.Fatalf("%v", err)
 		}
 
-		client := api.New()
-		if err := client.Login(); err != nil {
-			log.Errorln("api client login failure")
-			log.Fatalf("%v", err)
-		}
-
 		// update tracks
-		tracks, err := client.GetTracks()
+		tracks, err := c.client.GetTracks()
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
@@ -62,7 +65,7 @@ func (c *Collector) Run() {
 		}
 
 		// fetch all current seasons and go through them
-		seasons, err := client.GetCurrentSeasons()
+		seasons, err := c.client.GetCurrentSeasons()
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
@@ -73,36 +76,36 @@ func (c *Collector) Run() {
 					log.Debugf("Season: %v", season)
 
 					// figure out which season we are in
-					var year, yearlySeason int
+					var year, quarter int
 					if seasonrx.MatchString(season.SeasonNameShort) {
 						var err error
 						year, err = strconv.Atoi(season.SeasonNameShort[0:4])
 						if err != nil {
 							log.Errorf("could not convert SeasonNameShort [%s] to year: %v", season.SeasonNameShort, err)
 						}
-						yearlySeason, err = strconv.Atoi(season.SeasonNameShort[12:13])
+						quarter, err = strconv.Atoi(season.SeasonNameShort[12:13])
 						if err != nil {
-							log.Errorf("could not convert SeasonNameShort [%s] to yearlySeason: %v", season.SeasonNameShort, err)
+							log.Errorf("could not convert SeasonNameShort [%s] to quarter: %v", season.SeasonNameShort, err)
 						}
 					}
 					// if we couldn't figure out the season from SeasonNameShort, then we'll try to calculate it based on 2018S1 which started on 2017-12-12
-					if year < 2010 || yearlySeason < 1 {
+					if year < 2010 || quarter < 1 {
 						iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
 						daysSince := int(time.Now().Sub(iracingEpoch).Hours() / 24)
 						weeksSince := daysSince / 7
 						seasonsSince := weeksSince / 13
 						yearsSince := seasonsSince / 4
 						year = 2018 + yearsSince
-						yearlySeason = (seasonsSince % 4) + 1
+						quarter = (seasonsSince % 4) + 1
 					}
-					log.Debugf("Current season: %dS%d", year, yearlySeason)
+					log.Debugf("Current season: %dS%d", year, quarter)
 
 					// upsert current season
 					s := database.Season{
 						SeriesID:        series.SeriesID,
 						SeasonID:        season.SeasonID,
 						Year:            year,
-						Season:          yearlySeason,
+						Quarter:         quarter,
 						Category:        season.Category,
 						SeasonName:      season.SeasonName,
 						SeasonNameShort: season.SeasonNameShort,
@@ -115,7 +118,30 @@ func (c *Collector) Run() {
 					}
 
 					// insert current raceweek
-					c.CollectRaceWeek(client, season.SeasonID, season.RaceWeek)
+					c.CollectRaceWeek(season.SeasonID, season.RaceWeek)
+
+					// update previous week too
+					if season.RaceWeek > 0 {
+						c.CollectRaceWeek(season.SeasonID, season.RaceWeek-1)
+					} else {
+						// find previous season
+						ss, err := c.db.GetSeasonsBySeriesID(series.SeriesID)
+						if err != nil {
+							log.Fatalf("%v", err)
+						}
+						for _, s := range ss {
+							yearToFind := year
+							quarterToFind := quarter - 1
+							if quarter == 1 {
+								yearToFind = yearToFind - 1
+								quarterToFind = 4
+							}
+							if s.Year == yearToFind && s.Quarter == quarterToFind { // previous season found
+								c.CollectRaceWeek(s.SeasonID, 11)
+								break
+							}
+						}
+					}
 				}
 			}
 		}
@@ -124,10 +150,22 @@ func (c *Collector) Run() {
 	}
 }
 
-func (c *Collector) CollectRaceWeek(client *api.Client, seasonID, week int) {
-	results, err := client.GetRaceWeekResults(seasonID, week)
+func (c *Collector) CollectSeason(seasonID int) {
+	for w := 0; w < 12; w++ {
+		c.CollectRaceWeek(seasonID, w)
+	}
+}
+
+func (c *Collector) CollectRaceWeek(seasonID, week int) {
+	if week < 0 || week > 11 {
+		log.Errorf("week [%d] is invalid", week)
+		return
+	}
+
+	results, err := c.client.GetRaceWeekResults(seasonID, week)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Errorf("invalid raceweek results for seasonID [%d], week [%d]: %v", seasonID, week, err)
+		return
 	}
 	if len(results) == 0 {
 		log.Warnf("no results found for season [%d], week [%d]", seasonID, week)

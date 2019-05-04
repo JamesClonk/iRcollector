@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tracks (
 CREATE TABLE IF NOT EXISTS seasons (
     pk_season_id    INTEGER PRIMARY KEY,
     year            INTEGER NOT NULL,
-    season          INTEGER NOT NULL CHECK (season < 4),
+    quarter          INTEGER NOT NULL CHECK (quarter < 4),
     category        TEXT NOT NULL,
     name            TEXT NOT NULL UNIQUE,
     short_name      TEXT NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS seasons (
     logo_image      TEXT NOT NULL,
     fk_series_id    INTEGER NOT NULL,
     FOREIGN KEY (fk_series_id) REFERENCES series (pk_series_id) ON DELETE CASCADE,
-    CONSTRAINT uniq_season UNIQUE (fk_series_id, year, season)
+    CONSTRAINT uniq_season UNIQUE (fk_series_id, year, quarter)
 );
 
 -- raceweeks

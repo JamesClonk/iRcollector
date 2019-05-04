@@ -7,6 +7,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JamesClonk/iRcollector/env"
@@ -15,6 +16,8 @@ import (
 
 type Client struct {
 	CookieJar *cookiejar.Jar
+	mutex     *sync.Mutex
+	lastLogin time.Time
 }
 
 func New() *Client {
@@ -24,10 +27,15 @@ func New() *Client {
 	}
 	return &Client{
 		CookieJar: cookieJar,
+		mutex:     &sync.Mutex{},
+		lastLogin: time.Now().Add(-24 * time.Hour),
 	}
 }
 
 func (c *Client) Login() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	location, err := time.LoadLocation("Europe/Zurich")
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -66,6 +74,7 @@ func (c *Client) Login() error {
 		resp.Header.Get("Location") == "http://members.iracing.com/membersite/failedlogin.jsp" {
 		return fmt.Errorf("login failed")
 	}
+	c.lastLogin = time.Now()
 	return nil
 }
 
@@ -86,6 +95,17 @@ func (c *Client) Post(url string, values url.Values) ([]byte, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+	// relogin if needed
+	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
+		if err := c.Login(); err != nil {
+			return nil, err
+		}
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	time.Sleep(999 * time.Millisecond)
+
 	client := &http.Client{
 		Jar: c.CookieJar,
 	}

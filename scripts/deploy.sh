@@ -28,6 +28,14 @@ if [ -z "${IR_PASSWORD}" ]; then
 	echo "IR_PASSWORD must be set!"
 	exit 1
 fi
+if [ -z "${AUTH_USERNAME}" ]; then
+	echo "AUTH_USERNAME must be set!"
+	exit 1
+fi
+if [ -z "${AUTH_PASSWORD}" ]; then
+	echo "AUTH_PASSWORD must be set!"
+	exit 1
+fi
 
 # =============================================================================================
 if [[ "$(basename $PWD)" == "scripts" ]]; then
@@ -46,7 +54,9 @@ rm -f cf-cli.tgz || true
 ./cf login -a "https://api.lyra-836.appcloud.swisscom.com" -u "${APC_USERNAME}" -p "${APC_PASSWORD}" -o "${APC_ORGANIZATION}" -s "${APC_SPACE}"
 
 # push app
-./cf push iRcollector -f manifest.yml --var ir_username=${IR_USERNAME} --var ir_password=${IR_PASSWORD}
+./cf push iRcollector -f manifest.yml \
+  --var ir_username=${IR_USERNAME} --var ir_password=${IR_PASSWORD} \
+  --var auth_username=${AUTH_USERNAME} --var auth_password=${AUTH_PASSWORD}
 sleep 5
 
 # show status
