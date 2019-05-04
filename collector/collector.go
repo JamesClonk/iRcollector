@@ -36,6 +36,31 @@ func (c *Collector) Run() {
 			log.Fatalf("%v", err)
 		}
 
+		// update tracks
+		tracks, err := client.GetTracks()
+		if err != nil {
+			log.Fatalf("%v", err)
+		}
+		for _, track := range tracks {
+			log.Debugf("Track: %v", track)
+
+			// upsert track
+			t := database.Track{
+				TrackID:     track.TrackID,
+				Name:        track.Name,
+				Config:      track.Config,
+				Category:    track.Category,
+				BannerImage: track.BannerImage,
+				PanelImage:  track.PanelImage,
+				LogoImage:   track.LogoImage,
+				MapImage:    track.MapImage,
+				ConfigImage: track.ConfigImage,
+			}
+			if err := c.db.UpsertTrack(t); err != nil {
+				log.Errorf("could not store track [%s] in database: %v", track.Name, err)
+			}
+		}
+
 		// fetch all current seasons and go through them
 		seasons, err := client.GetCurrentSeasons()
 		if err != nil {
@@ -86,18 +111,58 @@ func (c *Collector) Run() {
 						LogoImage:       season.LogoImage,
 					}
 					if err := c.db.UpsertSeason(s); err != nil {
-						log.Errorf("could not store season [%s] to database: %v", season.SeasonName, err)
+						log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
 					}
 
-					// results, err := client.GetRaceWeekResults(season.SeasonID, season.RaceWeek)
-					// if err != nil {
-					// 	log.Fatalf("%v", err)
-					// }
-					// log.Infof("Results: %v", results)
+					// insert current raceweek
+					c.CollectRaceWeek(client, season.SeasonID, season.RaceWeek)
 				}
 			}
 		}
 
 		time.Sleep(77 * time.Minute)
+	}
+}
+
+func (c *Collector) CollectRaceWeek(client *api.Client, seasonID, week int) {
+	results, err := client.GetRaceWeekResults(seasonID, week)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	if len(results) == 0 {
+		log.Warnf("no results found for season [%d], week [%d]", seasonID, week)
+		return
+	}
+	trackID := results[0].TrackID
+
+	// insert raceweek
+	r := database.RaceWeek{
+		SeasonID: seasonID,
+		RaceWeek: week,
+		TrackID:  trackID,
+	}
+	raceweek, err := c.db.InsertRaceWeek(r)
+	if err != nil {
+		log.Errorf("could not store raceweek [%d] in database: %v", r.RaceWeek, err)
+	}
+	log.Debugf("Raceweek: %v", raceweek)
+
+	// upsert raceweek results
+	for _, result := range results {
+		log.Debugf("Result: %v", result)
+		rs := database.RaceWeekResults{
+			RaceWeekID:      raceweek.RaceWeekID,
+			StartTime:       result.StartTime,
+			CarClassID:      result.CarClassID,
+			TrackID:         result.TrackID,
+			SessionID:       result.SessionID,
+			SubsessionID:    result.SubsessionID,
+			Official:        result.Official,
+			SizeOfField:     result.SizeOfField,
+			StrengthOfField: result.StrengthOfField,
+		}
+		if err := c.db.UpsertRaceWeekResults(rs); err != nil {
+			log.Errorf("could not store raceweek result [%s] in database: %v", result.StartTime, err)
+		}
 	}
 }

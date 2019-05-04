@@ -7,5 +7,8 @@ DROP TABLE raceweeks;
 -- seasons
 DROP TABLE seasons;
 
+-- tracks
+DROP TABLE tracks;
+
 -- series
 DROP TABLE series;

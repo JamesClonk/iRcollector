@@ -87,3 +87,42 @@ type RaceWeekResult struct {
 	SizeOfField     int       `json:"sizeoffield"`
 	StrengthOfField int       `json:"strengthoffield"`
 }
+
+/*
+	trackobj={
+		name						: "Circuit Park Zandvoort",
+		category					: "Road",
+		configname					: "Oostelijk",
+		trackID						: 151,
+		sku							: 10198,
+		price						: "14.95",
+		pkgID						: 92,
+		freeWithSubscription		: "false",
+		discountGroupNames			: "[track_paid]",
+		col_color_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/pi_track_cpz.jpg",
+		col_gray_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/",
+		exp_logo_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/tle_logo_cpz.jpg",
+		exp_map_img					: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/tle_wmap_cpz.jpg",
+		exp_config_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/tle_tmap_cpz_oostelijk.jpg",
+		banner_img					: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/b_track_cpz_oostelijk.jpg",
+		header_img					: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/pt_track_cpz.gif",
+		owned						: (owned_idx!=-1)?1:0,
+		update						: (owned_idx!=-1)?OwnedContentListing[owned_idx].update:0,
+		download					: isdownload,
+		url							: "http://www.cpz.nl/",
+		nlapsQual					: 2,
+		nlapsSolo					: 6,
+		IsPurchasable				: Boolean('true')
+	};
+*/
+type Track struct {
+	TrackID     int    `json:"trackID"`
+	Name        string `json:"name"`
+	Category    string `json:"category"`
+	Config      string `json:"configname"`
+	BannerImage string `json:"banner_img"`
+	PanelImage  string `json:"col_color_img"`
+	LogoImage   string `json:"exp_logo_img"`
+	MapImage    string `json:"exp_map_img"`
+	ConfigImage string `json:"exp_config_img"`
+}

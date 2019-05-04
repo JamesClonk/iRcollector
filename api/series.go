@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Client) GetCurrentSeasons() ([]Season, error) {
-	log.Debugln("get current seasons ...")
+	log.Infoln("Get current seasons ...")
 	data, err := c.Get("https://members.iracing.com/membersite/member/Series.do")
 	if err != nil {
 		return nil, err
@@ -16,8 +16,8 @@ func (c *Client) GetCurrentSeasons() ([]Season, error) {
 
 	// use ugly regexp to jsonify javascript code
 	seriesRx := regexp.MustCompile(`seriesobj=([^;]*);`)
-	elementRx := regexp.MustCompile(`[\s+]([[:word:]]+)(:.+\n)`)
-	removeRx := regexp.MustCompile(`"[[:word:]]+":[[:alpha:]]+.*,\n`)
+	elementRx := regexp.MustCompile(`[\s]+([[:word:]]+)(:.+\n)`)
+	removeRx := regexp.MustCompile(`"[[:word:]]+":[\s]*[[:alpha:]]+.*,\n`)
 
 	seasons := make([]Season, 0)
 	for _, match := range seriesRx.FindAllSubmatch(data, -1) {
