@@ -186,21 +186,28 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 	log.Debugf("Raceweek: %v", raceweek)
 
 	// upsert raceweek results
-	for _, result := range results {
-		log.Debugf("Result: %v", result)
+	for _, race := range results {
+		log.Debugf("Race: %v", race)
 		rs := database.RaceWeekResults{
 			RaceWeekID:      raceweek.RaceWeekID,
-			StartTime:       result.StartTime,
-			CarClassID:      result.CarClassID,
-			TrackID:         result.TrackID,
-			SessionID:       result.SessionID,
-			SubsessionID:    result.SubsessionID,
-			Official:        result.Official,
-			SizeOfField:     result.SizeOfField,
-			StrengthOfField: result.StrengthOfField,
+			StartTime:       race.StartTime,
+			CarClassID:      race.CarClassID,
+			TrackID:         race.TrackID,
+			SessionID:       race.SessionID,
+			SubsessionID:    race.SubsessionID,
+			Official:        race.Official,
+			SizeOfField:     race.SizeOfField,
+			StrengthOfField: race.StrengthOfField,
 		}
 		if err := c.db.UpsertRaceWeekResults(rs); err != nil {
-			log.Errorf("could not store raceweek result [%s] in database: %v", result.StartTime, err)
+			log.Errorf("could not store raceweek result [%s] in database: %v", race.StartTime, err)
 		}
+
+		// // collect race result
+		// result, err := c.client.GetRaceResult(race.SubsessionID)
+		// if err != nil {
+		// 	log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
+		// }
+		// log.Debugf("Result: %v", result)
 	}
 }

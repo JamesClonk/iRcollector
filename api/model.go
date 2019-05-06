@@ -20,6 +20,60 @@ type CareerStats struct {
 	Starts                  int     `json:"starts"`
 }
 
+type RaceResult struct {
+	LeadChanges        int    `json:"nleadchanges"`
+	RaceWeek           int    `json:"race_week_num"`
+	SessionID          int    `json:"sessionid"`
+	Cautions           int    `json:"ncautions"`
+	Laps               int    `json:"eventlapscomplete"`
+	CornersPerLap      int    `json:"cornersperlap"`
+	WeatherRH          int    `json:"weather_rh"`
+	WeatherTemp        int    `json:"weather_temp_value"`
+	StartTime          string `json:"start_time"`         // "2019-05-05 14:30:00"
+	SimulatedStartTime string `json:"simulatedstarttime"` // "2019-05-04 14:00"
+	SOF                int    `json:"eventstrengthoffield"`
+	CautionLaps        int    `json:"ncautionlaps"`
+	AvgLaptime         int    `json:"eventavglap"`
+	AvgQualiLaps       int    `json:"nlapsforqualavg"`
+
+	Rows []struct {
+		RacerID                  int     `json:"custid"`
+		RacerName                string  `json:"displayname"`
+		iRatingBefore            int     `json:"oldirating"`
+		iRatingAfter             int     `json:"newirating"`
+		LicenseLevelBefore       int     `json:"oldlicenselevel"` // "20", "19", "13", etc..
+		LicenseLevelAfter        int     `json:"newlicenselevel"` // "20", "19", "13", etc..
+		LicenseGroup             int     `json:"licensegroup"`    // "20", "19", "13", etc..
+		AggregateChampPoints     int     `json:"aggchamppoints"`
+		ChampPoints              int     `json:"champpoints"`
+		ClubPoints               int     `json:"clubpoints"`
+		ClubID                   int     `json:"clubid"`
+		Club                     string  `json:"clubname"` // "Finland"
+		CarNumber                string  `json:"carnum"`   // "8"
+		StartingPosition         int     `json:"startpos"`
+		Position                 int     `json:"pos"`
+		FinishingPosition        int     `json:"finishpos"`
+		FinishingPositionInClass int     `json:"finishposinclass"`
+		Division                 int     `json:"division"`
+		CPIBefore                float64 `json:"oldcpi"`
+		CPIAfter                 float64 `json:"newcpi"`
+		SafetyRatingAfter        int     `json:"newsublevel"`      // new SR, "499", etc..
+		SafetyRatingBefore       int     `json:"oldsublevel"`      // new SR, "499", etc..
+		Interval                 int     `json:"interval"`         // "0", "184634", etc..
+		ClassInterval            int     `json:"classinterval"`    // "0", "184634", etc..
+		AvgLaptime               int     `json:"avglap"`           // "1255213"
+		LapsCompleted            int     `json:"lapscomplete"`     // "21"
+		LapsLead                 int     `json:"lapslead"`         // "21"
+		Incidents                int     `json:"incidents"`        // "0"
+		DropRacepoints           int     `json:"dropracepoints"`   // ??? 0 or 1
+		ReasonOut                string  `json:"reasonout"`        // "Running", "Disconnected", etc..
+		SessionStartTime         int64   `json:"sessionstarttime"` // "1557066600000"
+		SessionNum               int     `json:"simsesnum"`        // 0 race, -1 quali or practice, -2 practice
+		SessionName              string  `json:"simsesname"`       // should be "RACE"
+		SessionType              string  `json:"simsestypename"`   // should be "Race"
+	} `json:"rows"`
+}
+
 /*
 	seriesobj={
 		seasonID:2391,
