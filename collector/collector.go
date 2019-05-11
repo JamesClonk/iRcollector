@@ -45,7 +45,7 @@ func (c *Collector) Run() {
 			log.Fatalf("%v", err)
 		}
 		for _, track := range tracks {
-			log.Debugf("Track: %v", track)
+			log.Debugf("Track: %v", track.Name)
 
 			// upsert track
 			t := database.Track{
@@ -203,12 +203,20 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 			log.Errorf("could not store raceweek result [%s] in database: %v", race.StartTime, err)
 		}
 
+		// skip unofficial races
+		if !race.Official {
+			continue
+		}
+
 		// collect race result
 		result, err := c.client.GetRaceResult(race.SubsessionID)
 		if err != nil {
 			log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
 		}
 		//log.Debugf("Result: %v", result)
+		if result.Laps == 0 { // skip invalid race results
+			continue
+		}
 
 		// insert race stats
 		stats := database.RaceStats{
