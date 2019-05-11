@@ -201,6 +201,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		}
 		if err := c.db.UpsertRaceWeekResults(rs); err != nil {
 			log.Errorf("could not store raceweek result [%s] in database: %v", race.StartTime, err)
+			continue
 		}
 
 		// skip unofficial races
@@ -212,9 +213,11 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		result, err := c.client.GetRaceResult(race.SubsessionID)
 		if err != nil {
 			log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
+			continue
 		}
 		//log.Debugf("Result: %v", result)
 		if result.Laps == 0 { // skip invalid race results
+			log.Errorf("invalid race result: %v", result)
 			continue
 		}
 
