@@ -1,6 +1,9 @@
 package api
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type CareerStats struct {
 	Wins                    int     `json:"wins"`
@@ -29,8 +32,8 @@ type RaceResult struct {
 	CornersPerLap      int    `json:"cornersperlap"`
 	WeatherRH          int    `json:"weather_rh"`
 	WeatherTemp        int    `json:"weather_temp_value"`
-	StartTime          string `json:"start_time"`         // "2019-05-05 14:30:00"
-	SimulatedStartTime string `json:"simulatedstarttime"` // "2019-05-04 14:00"
+	StartTime          encodedTime `json:"start_time"`         // "2019-05-05 14:30:00"
+	SimulatedStartTime encodedTime `json:"simulatedstarttime"` // "2019-05-04 14:00"
 	SOF                int    `json:"eventstrengthoffield"`
 	CautionLaps        int    `json:"ncautionlaps"`
 	AvgLaptime         int    `json:"eventavglap"`
@@ -179,4 +182,25 @@ type Track struct {
 	LogoImage   string `json:"exp_logo_img"`
 	MapImage    string `json:"exp_map_img"`
 	ConfigImage string `json:"exp_config_img"`
+}
+
+type encodedTime struct {
+	Time time.Time
+}
+
+func (e *encodedTime) UnmarshalJSON(data []byte) error {
+	input := strings.Replace(string(data), "%3A", ":", -1)
+	input = strings.Replace(input, "+", " ", -1)
+	input = strings.Replace(input, `"`, "", -1)
+	if strings.Count(input, ":") == 1 {
+		input =  input + ":00"
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05", input)
+	if err != nil {
+		return err
+	}
+
+	*e = encodedTime{t}
+	return nil
 }

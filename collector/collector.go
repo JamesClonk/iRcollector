@@ -203,11 +203,32 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 			log.Errorf("could not store raceweek result [%s] in database: %v", race.StartTime, err)
 		}
 
-		// // collect race result
-		// result, err := c.client.GetRaceResult(race.SubsessionID)
-		// if err != nil {
-		// 	log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
-		// }
-		// log.Debugf("Result: %v", result)
+		// collect race result
+		result, err := c.client.GetRaceResult(race.SubsessionID)
+		if err != nil {
+			log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
+		}
+		log.Debugf("Result: %v", result)
+
+		// insert race stats
+		stats := database.RaceStats{
+			SubsessionID:      race.SubsessionID,
+			StartTime:      result.StartTime.Time,
+			SimulatedStartTime:      result.SimulatedStartTime.Time,
+			LeadChanges:      result.LeadChanges,
+			Laps:      result.Laps,
+			Cautions:      result.Cautions,
+			CautionLaps:      result.CautionLaps,
+			CornersPerLap:      result.CornersPerLap,
+			AvgLaptime:      result.AvgLaptime,
+			AvgQualiLaps:      result.AvgQualiLaps,
+			WeatherRH:       result.WeatherRH,
+			WeatherTemp:       result.WeatherTemp,
+		}
+		racestats, err := c.db.InsertRaceStats(stats)
+		if err != nil {
+			log.Errorf("could not store race stats [%d] in database: %v", stats, err)
+		}
+		log.Debugf("Race stats: %v", racestats)
 	}
 }

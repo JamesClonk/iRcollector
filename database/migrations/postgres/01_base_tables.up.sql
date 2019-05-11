@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS tracks (
 CREATE TABLE IF NOT EXISTS seasons (
     pk_season_id    INTEGER PRIMARY KEY,
     year            INTEGER NOT NULL,
-    quarter          INTEGER NOT NULL CHECK (quarter < 4),
+    quarter         INTEGER NOT NULL CHECK (quarter < 4),
     category        TEXT NOT NULL,
     name            TEXT NOT NULL UNIQUE,
     short_name      TEXT NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS seasons (
 CREATE TABLE IF NOT EXISTS raceweeks (
     pk_raceweek_id  SERIAL PRIMARY KEY,
     raceweek        INTEGER NOT NULL CHECK (raceweek < 13),
-    fk_track_id        INTEGER NOT NULL,
+    fk_track_id     INTEGER NOT NULL,
     fk_season_id    INTEGER NOT NULL,
     FOREIGN KEY (fk_track_id) REFERENCES tracks (pk_track_id) ON DELETE CASCADE,
     FOREIGN KEY (fk_season_id) REFERENCES seasons (pk_season_id) ON DELETE CASCADE,
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS raceweeks (
 CREATE TABLE IF NOT EXISTS raceweek_results (
     starttime       TIMESTAMPTZ NOT NULL,
     car_class_id    INTEGER NOT NULL,
-    session_id      INTEGER NOT NULL UNIQUE,
-    subsession_id   INTEGER NOT NULL,
+    session_id      INTEGER NOT NULL,
+    subsession_id   INTEGER NOT NULL UNIQUE,
     official        BOOLEAN NOT NULL,
     size            INTEGER NOT NULL,
     sof             INTEGER NOT NULL,
@@ -64,5 +64,5 @@ CREATE TABLE IF NOT EXISTS raceweek_results (
     fk_raceweek_id  INTEGER NOT NULL,
     FOREIGN KEY (fk_track_id) REFERENCES tracks (pk_track_id) ON DELETE CASCADE,
     FOREIGN KEY (fk_raceweek_id) REFERENCES raceweeks (pk_raceweek_id) ON DELETE CASCADE,
-    CONSTRAINT uniq_result UNIQUE (fk_raceweek_id, starttime)
+    CONSTRAINT uniq_raceweek_result UNIQUE (fk_raceweek_id, starttime)
 );

@@ -52,3 +52,18 @@ type RaceWeekResults struct {
 	SizeOfField     int       `db:"size"`
 	StrengthOfField int       `db:"sof"`
 }
+
+type RaceStats struct {
+	SubsessionID    	int       `db:"fk_subsession_id"` // foreign-key to RaceWeek.SubsessionID
+	StartTime       	time.Time 	  `db:"starttime"`
+	SimulatedStartTime  time.Time    `db:"simulated_starttime"`
+	LeadChanges      	int       `db:"lead_changes"`
+	Laps      			int       `db:"laps"`
+	Cautions      		int       `db:"cautions"`
+	CautionLaps      	int       `db:"caution_laps"`
+	CornersPerLap      	int       `db:"corners_per_lap"`
+	AvgLaptime      	int       `db:"avg_laptime"`
+	AvgQualiLaps      	int       `db:"avg_quali_laps"`
+	WeatherRH      		int       `db:"weather_rh"`
+	WeatherTemp      	int       `db:"weather_temp"`
+}

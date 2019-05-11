@@ -13,6 +13,8 @@ type Database interface {
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
 	UpsertRaceWeekResults(RaceWeekResults) error
+	InsertRaceStats(RaceStats) (RaceStats, error)
+	GetRaceStatsBySubsessionID(int) (RaceStats, error)
 }
 
 type database struct {
@@ -211,4 +213,48 @@ func (db *database) UpsertRaceWeekResults(results RaceWeekResults) error {
 		return err
 	}
 	return tx.Commit()
+}
+
+func (db *database) InsertRaceStats(racestats RaceStats) (RaceStats, error) {
+	stmt, err := db.Preparex(`
+		insert into race_stats
+			(fk_subsession_id, starttime, simulated_starttime, lead_changes, laps,
+			cautions, caution_laps, corners_per_lap, avg_laptime, avg_quali_laps, weather_rh, weather_temp)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		on conflict do nothing`)
+	if err != nil {
+		return RaceStats{}, err
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.Exec(
+		racestats.SubsessionID, racestats.StartTime, racestats.SimulatedStartTime, racestats.LeadChanges,
+		racestats.Laps, racestats.Cautions, racestats.CautionLaps, racestats.CornersPerLap,
+		racestats.AvgLaptime, racestats.AvgQualiLaps, racestats.WeatherRH, racestats.WeatherTemp); err != nil {
+		return RaceStats{}, err
+	}
+	return db.GetRaceStatsBySubsessionID(racestats.SubsessionID)
+}
+
+func (db *database) GetRaceStatsBySubsessionID(subsessionID int) (RaceStats, error) {
+	racestats := RaceStats{}
+	if err := db.Get(&racestats, `
+		select
+			r.fk_subsession_id,
+			r.starttime,
+			r.simulated_starttime,
+			r.lead_changes,
+			r.laps,
+			r.cautions,
+			r.caution_laps,
+			r.corners_per_lap,
+			r.avg_laptime,
+			r.avg_quali_laps,
+			r.weather_rh,
+			r.weather_temp
+		from race_stats r
+		where r.fk_subsession_id = $1`, subsessionID); err != nil {
+		return RaceStats{}, err
+	}
+	return racestats, nil
 }
