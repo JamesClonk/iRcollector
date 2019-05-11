@@ -208,7 +208,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		if err != nil {
 			log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
 		}
-		log.Debugf("Result: %v", result)
+		//log.Debugf("Result: %v", result)
 
 		// insert race stats
 		stats := database.RaceStats{
