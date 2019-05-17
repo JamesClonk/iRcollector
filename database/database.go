@@ -6,6 +6,7 @@ import (
 
 type Database interface {
 	GetSeries() ([]Series, error)
+	GetSeasons() ([]Season, error)
 	GetSeasonsBySeriesID(int) ([]Season, error)
 	UpsertSeason(Season) error
 	UpsertTrack(Track) error
@@ -14,12 +15,14 @@ type Database interface {
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
 	InsertRaceWeekResult(RaceWeekResult) (RaceWeekResult, error)
 	GetRaceWeekResultBySubsessionID(int) (RaceWeekResult, error)
+	GetRaceWeekResultsBySeasonIDAndWeek(int, int) ([]RaceWeekResult, error)
 	InsertRaceStats(RaceStats) (RaceStats, error)
 	GetRaceStatsBySubsessionID(int) (RaceStats, error)
 	UpsertClub(Club) error
 	UpsertDriver(Driver) error
 	InsertRaceResult(RaceResult) (RaceResult, error)
 	GetRaceResultBySubsessionIDAndDriverID(int, int) (RaceResult, error)
+	GetRaceResultsBySubsessionID(int) ([]RaceResult, error)
 	GetClubByID(int) (Club, error)
 	GetDriverByID(int) (Driver, error)
 }
@@ -48,6 +51,27 @@ func (db *database) GetSeries() ([]Series, error) {
 	return series, nil
 }
 
+func (db *database) GetSeasons() ([]Season, error) {
+	seasons := make([]Season, 0)
+	if err := db.Select(&seasons, `
+		select
+			s.pk_season_id,
+			s.fk_series_id,
+			s.year,
+			s.quarter,
+			s.category,
+			s.name,
+			s.short_name,
+			s.banner_image,
+			s.panel_image,
+			s.logo_image
+		from seasons s
+		order by s.name asc, s.year desc, s.quarter desc`); err != nil {
+		return nil, err
+	}
+	return seasons, nil
+}
+
 func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 	seasons := make([]Season, 0)
 	if err := db.Select(&seasons, `
@@ -61,7 +85,7 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 			s.short_name,
 			s.banner_image,
 			s.panel_image,
-			s.logo_image,
+			s.logo_image
 		from seasons s
 		where s.fk_series_id = $1
 		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
@@ -232,6 +256,29 @@ func (db *database) GetRaceWeekResultBySubsessionID(subsessionID int) (RaceWeekR
 		return RaceWeekResult{}, err
 	}
 	return result, nil
+}
+
+func (db *database) GetRaceWeekResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceWeekResult, error) {
+	results := make([]RaceWeekResult, 0)
+	if err := db.Select(&results, `
+		select
+			rr.fk_raceweek_id,
+			rr.starttime,
+			rr.car_class_id,
+			rr.fk_track_id,
+			rr.session_id,
+			rr.subsession_id,
+			rr.official,
+			rr.size,
+			rr.sof
+		from raceweek_results rr
+			join raceweeks rw on (rw.pk_raceweek_id = rr.fk_raceweek_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		order by rr.starttime asc, rr.subsession_id asc`, seasonID, week); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func (db *database) InsertRaceStats(racestats RaceStats) (RaceStats, error) {
@@ -417,6 +464,69 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 		return RaceResult{}, err
 	}
 	return r, nil
+}
+
+func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult, error) {
+	results := make([]RaceResult, 0)
+	rows, err := db.Queryx(`
+		select
+			r.fk_subsession_id,
+			c.pk_club_id,
+			c.name,
+			d.pk_driver_id,
+			d.name,
+			r.old_irating,
+			r.new_irating,
+			r.old_license_level,
+			r.new_license_level,
+			r.old_safety_rating,
+			r.new_safety_rating,
+			r.old_cpi,
+			r.new_cpi,
+			r.license_group,
+			r.aggregate_champpoints,
+			r.champpoints,
+			r.clubpoints,
+			r.car_number,
+			r.starting_position,
+			r.position,
+			r.finishing_position,
+			r.finishing_position_in_class,
+			r.division,
+			r.interval,
+			r.class_interval,
+			r.avg_laptime,
+			r.laps_completed,
+			r.laps_lead,
+			r.incidents,
+			r.reason_out,
+			r.session_starttime
+		from race_results r
+			join drivers d on (r.fk_driver_id = d.pk_driver_id)
+			join clubs c on (d.fk_club_id = c.pk_club_id)
+		where r.fk_subsession_id = $1
+		order by r.finishing_position asc, r.champpoints desc, d.name asc`, subsessionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		r := RaceResult{}
+		if err := rows.Scan(
+			&r.SubsessionID, &r.Driver.Club.ClubID, &r.Driver.Club.Name, &r.Driver.DriverID, &r.Driver.Name,
+			&r.IRatingBefore, &r.IRatingAfter, &r.LicenseLevelBefore, &r.LicenseLevelAfter,
+			&r.SafetyRatingBefore, &r.SafetyRatingAfter, &r.CPIBefore, &r.CPIAfter,
+			&r.LicenseGroup, &r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
+			&r.CarNumber, &r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
+			&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
+			&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
 }
 
 func (db *database) GetClubByID(id int) (Club, error) {

@@ -30,6 +30,10 @@ func (c *Collector) LoginClient() {
 	}
 }
 
+func (c *Collector) Database() database.Database {
+	return c.db
+}
+
 func (c *Collector) Run() {
 	seasonrx := regexp.MustCompile(`20[1-5][0-9] Season [1-4]`) // "2019 Season 2"
 
@@ -276,7 +280,7 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
 			// skip anything that's not a race session entry
 			continue
 		}
-		log.Debugf("Driver result: %s", row)
+		//log.Debugf("Driver result: %s", row)
 
 		// update club & driver
 		club := database.Club{
