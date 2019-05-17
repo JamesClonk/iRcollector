@@ -1,7 +1,7 @@
 package api
 
 import (
-	"strings"
+	"fmt"
 	"time"
 )
 
@@ -24,57 +24,68 @@ type CareerStats struct {
 }
 
 type RaceResult struct {
-	LeadChanges        int    `json:"nleadchanges"`
-	RaceWeek           int    `json:"race_week_num"`
-	SessionID          int    `json:"sessionid"`
-	Cautions           int    `json:"ncautions"`
-	Laps               int    `json:"eventlapscomplete"`
-	CornersPerLap      int    `json:"cornersperlap"`
-	WeatherRH          int    `json:"weather_rh"`
-	WeatherTemp        int    `json:"weather_temp_value"`
-	StartTime          encodedTime `json:"start_time"`         // "2019-05-05 14:30:00"
-	SimulatedStartTime encodedTime `json:"simulatedstarttime"` // "2019-05-04 14:00"
-	SOF                int    `json:"eventstrengthoffield"`
-	CautionLaps        int    `json:"ncautionlaps"`
-	AvgLaptime         int    `json:"eventavglap"`
-	AvgQualiLaps       int    `json:"nlapsforqualavg"`
+	LeadChanges        int             `json:"nleadchanges"`
+	RaceWeek           int             `json:"race_week_num"`
+	SessionID          int             `json:"sessionid"`
+	Cautions           int             `json:"ncautions"`
+	Laps               int             `json:"eventlapscomplete"`
+	CornersPerLap      int             `json:"cornersperlap"`
+	WeatherRH          int             `json:"weather_rh"`
+	WeatherTemp        int             `json:"weather_temp_value"`
+	StartTime          encodedTime     `json:"start_time"`         // "2019-05-05 14:30:00"
+	SimulatedStartTime encodedTime     `json:"simulatedstarttime"` // "2019-05-04 14:00"
+	SOF                int             `json:"eventstrengthoffield"`
+	CautionLaps        int             `json:"ncautionlaps"`
+	AvgLaptime         laptime         `json:"eventavglap"`
+	AvgQualiLaps       int             `json:"nlapsforqualavg"`
+	Rows               []RaceResultRow `json:"rows"`
+}
 
-	Rows []struct {
-		RacerID                  int     `json:"custid"`
-		RacerName                string  `json:"displayname"`
-		iRatingBefore            int     `json:"oldirating"`
-		iRatingAfter             int     `json:"newirating"`
-		LicenseLevelBefore       int     `json:"oldlicenselevel"` // "20", "19", "13", etc..
-		LicenseLevelAfter        int     `json:"newlicenselevel"` // "20", "19", "13", etc..
-		LicenseGroup             int     `json:"licensegroup"`    // "20", "19", "13", etc..
-		AggregateChampPoints     int     `json:"aggchamppoints"`
-		ChampPoints              int     `json:"champpoints"`
-		ClubPoints               int     `json:"clubpoints"`
-		ClubID                   int     `json:"clubid"`
-		Club                     string  `json:"clubname"` // "Finland"
-		CarNumber                string  `json:"carnum"`   // "8"
-		StartingPosition         int     `json:"startpos"`
-		Position                 int     `json:"pos"`
-		FinishingPosition        int     `json:"finishpos"`
-		FinishingPositionInClass int     `json:"finishposinclass"`
-		Division                 int     `json:"division"`
-		CPIBefore                float64 `json:"oldcpi"`
-		CPIAfter                 float64 `json:"newcpi"`
-		SafetyRatingAfter        int     `json:"newsublevel"`      // new SR, "499", etc..
-		SafetyRatingBefore       int     `json:"oldsublevel"`      // new SR, "499", etc..
-		Interval                 int     `json:"interval"`         // "0", "184634", etc..
-		ClassInterval            int     `json:"classinterval"`    // "0", "184634", etc..
-		AvgLaptime               int     `json:"avglap"`           // "1255213"
-		LapsCompleted            int     `json:"lapscomplete"`     // "21"
-		LapsLead                 int     `json:"lapslead"`         // "21"
-		Incidents                int     `json:"incidents"`        // "0"
-		DropRacepoints           int     `json:"dropracepoints"`   // ??? 0 or 1
-		ReasonOut                string  `json:"reasonout"`        // "Running", "Disconnected", etc..
-		SessionStartTime         int64   `json:"sessionstarttime"` // "1557066600000"
-		SessionNum               int     `json:"simsesnum"`        // 0 race, -1 quali or practice, -2 practice
-		SessionName              string  `json:"simsesname"`       // should be "RACE"
-		SessionType              string  `json:"simsestypename"`   // should be "Race"
-	} `json:"rows"`
+func (rr RaceResult) String() string {
+	return fmt.Sprintf("[ AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d, SOF: %d ]", rr.AvgLaptime, rr.Laps, rr.LeadChanges, rr.Cautions, rr.SOF)
+}
+
+type RaceResultRow struct {
+	RacerID                  int           `json:"custid"`
+	RacerName                encodedString `json:"displayname"`
+	IRatingBefore            int           `json:"oldirating"`
+	IRatingAfter             int           `json:"newirating"`
+	LicenseLevelBefore       int           `json:"oldlicenselevel"` // "20", "19", "13", etc..
+	LicenseLevelAfter        int           `json:"newlicenselevel"` // "20", "19", "13", etc..
+	LicenseGroup             int           `json:"licensegroup"`    // "20", "19", "13", etc..
+	AggregateChampPoints     int           `json:"aggchamppoints"`
+	ChampPoints              int           `json:"champpoints"`
+	ClubPoints               int           `json:"clubpoints"`
+	ClubID                   int           `json:"clubid"`
+	Club                     encodedString `json:"clubname"` // "Finland"
+	CarNumber                string        `json:"carnum"`   // "8"
+	StartingPosition         int           `json:"startpos"`
+	Position                 int           `json:"pos"`
+	FinishingPosition        int           `json:"finishpos"`
+	FinishingPositionInClass int           `json:"finishposinclass"`
+	Division                 int           `json:"division"`
+	CPIBefore                float64       `json:"oldcpi"`
+	CPIAfter                 float64       `json:"newcpi"`
+	SafetyRatingAfter        int           `json:"newsublevel"`      // new SR, "499", etc..
+	SafetyRatingBefore       int           `json:"oldsublevel"`      // new SR, "499", etc..
+	Interval                 int           `json:"interval"`         // "0", "184634", etc..
+	ClassInterval            int           `json:"classinterval"`    // "0", "184634", etc..
+	AvgLaptime               laptime       `json:"avglap"`           // "1255213"
+	LapsCompleted            int           `json:"lapscomplete"`     // "21"
+	LapsLead                 int           `json:"lapslead"`         // "21"
+	Incidents                int           `json:"incidents"`        // "0"
+	DropRacepoints           int           `json:"dropracepoints"`   // ??? 0 or 1
+	ReasonOut                string        `json:"reasonout"`        // "Running", "Disconnected", etc..
+	SessionStartTime         int64         `json:"sessionstarttime"` // "1557066600000"
+	SessionNum               int           `json:"simsesnum"`        // 0 race, -1 quali or practice, -2 practice
+	SessionName              string        `json:"simsesname"`       // should be "RACE"
+	SessionType              string        `json:"simsestypename"`   // should be "Race"
+}
+
+func (rrr RaceResultRow) String() string {
+	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
+		rrr.FinishingPosition, rrr.RacerName, rrr.Club, rrr.AvgLaptime, rrr.LapsLead, rrr.LapsCompleted,
+		rrr.IRatingAfter, rrr.Incidents, rrr.ChampPoints, rrr.ClubPoints, rrr.ReasonOut)
 }
 
 /*
@@ -132,6 +143,10 @@ type Season struct {
 	TrackConfig     string `json:"trackconfig"`
 }
 
+func (s Season) String() string {
+	return fmt.Sprintf("[ Name: %s, Week: %d, Track: %s - %s ]", s.SeasonName, s.RaceWeek, s.TrackName, s.TrackConfig)
+}
+
 type RaceWeekResult struct {
 	SeasonID        int       `json:"seasonID"` // foreign-key to Season
 	RaceWeek        int       `json:"raceweek"`
@@ -143,6 +158,10 @@ type RaceWeekResult struct {
 	Official        bool      `json:"officialsession"`
 	SizeOfField     int       `json:"sizeoffield"`
 	StrengthOfField int       `json:"strengthoffield"`
+}
+
+func (rws RaceWeekResult) String() string {
+	return fmt.Sprintf("[ Week: %d, Time: %s, Drivers: %d, SOF: %d ]", rws.RaceWeek, rws.StartTime, rws.SizeOfField, rws.StrengthOfField)
 }
 
 /*
@@ -184,23 +203,6 @@ type Track struct {
 	ConfigImage string `json:"exp_config_img"`
 }
 
-type encodedTime struct {
-	Time time.Time
-}
-
-func (e *encodedTime) UnmarshalJSON(data []byte) error {
-	input := strings.Replace(string(data), "%3A", ":", -1)
-	input = strings.Replace(input, "+", " ", -1)
-	input = strings.Replace(input, `"`, "", -1)
-	if strings.Count(input, ":") == 1 {
-		input =  input + ":00"
-	}
-
-	t, err := time.Parse("2006-01-02 15:04:05", input)
-	if err != nil {
-		return err
-	}
-
-	*e = encodedTime{t}
-	return nil
+func (t Track) String() string {
+	return fmt.Sprintf("[ Name: %s, Config: %s ]", t.Name, t.Config)
 }

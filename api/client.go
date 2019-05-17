@@ -104,7 +104,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	time.Sleep(1234 * time.Millisecond)
+	time.Sleep(2345 * time.Millisecond)
 
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36")
 	req.Header.Add("Referer", "https://members.iracing.com/membersite/login.jsp")

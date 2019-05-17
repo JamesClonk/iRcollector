@@ -1,7 +1,10 @@
 package api
 
 import (
+	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,4 +20,43 @@ func (u *unixTime) UnmarshalJSON(data []byte) error {
 
 	*u = unixTime{time.Unix(unix/1000, 0)}
 	return nil
+}
+
+type encodedTime struct {
+	Time time.Time
+}
+
+func (e *encodedTime) UnmarshalJSON(data []byte) error {
+	input := strings.Replace(decode(string(data)), `"`, "", -1)
+	if strings.Count(input, ":") == 1 {
+		input = input + ":00"
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05", input)
+	if err != nil {
+		return err
+	}
+
+	*e = encodedTime{t}
+	return nil
+}
+
+type encodedString string
+
+func (e encodedString) String() string {
+	return decode(string(e))
+}
+
+func decode(value string) string {
+	decodedValue, err := url.QueryUnescape(value)
+	if err != nil {
+		return value
+	}
+	return decodedValue
+}
+
+type laptime int
+
+func (l laptime) String() string {
+	return fmt.Sprintf("%s", time.Duration(l*100)*time.Microsecond)
 }

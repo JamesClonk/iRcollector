@@ -3,6 +3,7 @@ package collector
 import (
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/JamesClonk/iRcollector/api"
@@ -40,29 +41,7 @@ func (c *Collector) Run() {
 		}
 
 		// update tracks
-		tracks, err := c.client.GetTracks()
-		if err != nil {
-			log.Fatalf("%v", err)
-		}
-		for _, track := range tracks {
-			log.Debugf("Track: %v", track.Name)
-
-			// upsert track
-			t := database.Track{
-				TrackID:     track.TrackID,
-				Name:        track.Name,
-				Config:      track.Config,
-				Category:    track.Category,
-				BannerImage: track.BannerImage,
-				PanelImage:  track.PanelImage,
-				LogoImage:   track.LogoImage,
-				MapImage:    track.MapImage,
-				ConfigImage: track.ConfigImage,
-			}
-			if err := c.db.UpsertTrack(t); err != nil {
-				log.Errorf("could not store track [%s] in database: %v", track.Name, err)
-			}
-		}
+		c.CollectTracks()
 
 		// fetch all current seasons and go through them
 		seasons, err := c.client.GetCurrentSeasons()
@@ -73,7 +52,7 @@ func (c *Collector) Run() {
 			namerx := regexp.MustCompile(series.SeriesRegex)
 			for _, season := range seasons {
 				if namerx.MatchString(season.SeriesName) { // does seriesName match seriesRegex from db?
-					log.Debugf("Season: %v", season)
+					log.Infof("Season: %s", season)
 
 					// figure out which season we are in
 					var year, quarter int
@@ -98,7 +77,7 @@ func (c *Collector) Run() {
 						year = 2018 + yearsSince
 						quarter = (seasonsSince % 4) + 1
 					}
-					log.Debugf("Current season: %dS%d", year, quarter)
+					log.Infof("Current season: %dS%d", year, quarter)
 
 					// upsert current season
 					s := database.Season{
@@ -150,6 +129,32 @@ func (c *Collector) Run() {
 	}
 }
 
+func (c *Collector) CollectTracks() {
+	tracks, err := c.client.GetTracks()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	for _, track := range tracks {
+		log.Debugf("Track: %s", track)
+
+		// upsert track
+		t := database.Track{
+			TrackID:     track.TrackID,
+			Name:        track.Name,
+			Config:      track.Config,
+			Category:    track.Category,
+			BannerImage: track.BannerImage,
+			PanelImage:  track.PanelImage,
+			LogoImage:   track.LogoImage,
+			MapImage:    track.MapImage,
+			ConfigImage: track.ConfigImage,
+		}
+		if err := c.db.UpsertTrack(t); err != nil {
+			log.Errorf("could not store track [%s] in database: %v", track.Name, err)
+		}
+	}
+}
+
 func (c *Collector) CollectSeason(seasonID int) {
 	for w := 0; w < 12; w++ {
 		c.CollectRaceWeek(seasonID, w)
@@ -186,60 +191,77 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 	log.Debugf("Raceweek: %v", raceweek)
 
 	// upsert raceweek results
-	for _, race := range results {
-		log.Debugf("Race: %v", race)
-		rs := database.RaceWeekResults{
+	for _, result := range results {
+		log.Debugf("Race week result: %s", result)
+		rs := database.RaceWeekResult{
 			RaceWeekID:      raceweek.RaceWeekID,
-			StartTime:       race.StartTime,
-			CarClassID:      race.CarClassID,
-			TrackID:         race.TrackID,
-			SessionID:       race.SessionID,
-			SubsessionID:    race.SubsessionID,
-			Official:        race.Official,
-			SizeOfField:     race.SizeOfField,
-			StrengthOfField: race.StrengthOfField,
+			StartTime:       result.StartTime,
+			CarClassID:      result.CarClassID,
+			TrackID:         result.TrackID,
+			SessionID:       result.SessionID,
+			SubsessionID:    result.SubsessionID,
+			Official:        result.Official,
+			SizeOfField:     result.SizeOfField,
+			StrengthOfField: result.StrengthOfField,
 		}
 		if err := c.db.UpsertRaceWeekResults(rs); err != nil {
-			log.Errorf("could not store raceweek result [%s] in database: %v", race.StartTime, err)
+			log.Errorf("could not store raceweek result [%s] in database: %v", result.StartTime, err)
 			continue
 		}
 
 		// skip unofficial races
-		if !race.Official {
+		if !result.Official {
 			continue
 		}
 
-		// collect race result
-		result, err := c.client.GetRaceResult(race.SubsessionID)
-		if err != nil {
-			log.Errorf("could not get race result for subsession-id [%d]: %v", race.SubsessionID, err)
-			continue
-		}
-		//log.Debugf("Result: %v", result)
-		if result.Laps == 0 { // skip invalid race results
-			log.Errorf("invalid race result: %v", result)
+		// insert race statistics
+		c.CollectRaceStats(result)
+	}
+}
+
+func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
+	// collect race result
+	result, err := c.client.GetRaceResult(rws.SubsessionID)
+	if err != nil {
+		log.Errorf("could not get race result for subsession-id [%d]: %v", rws.SubsessionID, err)
+		return
+	}
+	//log.Debugf("Result: %v", result)
+	if result.Laps == 0 { // skip invalid race results
+		log.Errorf("invalid race result: %v", result)
+		return
+	}
+
+	// insert race stats
+	stats := database.RaceStats{
+		SubsessionID:       rws.SubsessionID,
+		StartTime:          result.StartTime.Time,
+		SimulatedStartTime: result.SimulatedStartTime.Time,
+		LeadChanges:        result.LeadChanges,
+		Laps:               result.Laps,
+		Cautions:           result.Cautions,
+		CautionLaps:        result.CautionLaps,
+		CornersPerLap:      result.CornersPerLap,
+		AvgLaptime:         database.Laptime(int(result.AvgLaptime)),
+		AvgQualiLaps:       result.AvgQualiLaps,
+		WeatherRH:          result.WeatherRH,
+		WeatherTemp:        result.WeatherTemp,
+	}
+	racestats, err := c.db.InsertRaceStats(stats)
+	if err != nil {
+		log.Errorf("could not store race stats [%d] in database: %v", stats, err)
+	}
+	log.Debugf("Race stats: %s", racestats)
+
+	// go through race / driver results
+	for _, row := range result.Rows {
+		if row.SessionNum != 0 ||
+			strings.ToLower(row.SessionName) != "race" ||
+			strings.ToLower(row.SessionType) != "race" {
+			// skip anything that's not a race session entry
 			continue
 		}
 
-		// insert race stats
-		stats := database.RaceStats{
-			SubsessionID:      race.SubsessionID,
-			StartTime:      result.StartTime.Time,
-			SimulatedStartTime:      result.SimulatedStartTime.Time,
-			LeadChanges:      result.LeadChanges,
-			Laps:      result.Laps,
-			Cautions:      result.Cautions,
-			CautionLaps:      result.CautionLaps,
-			CornersPerLap:      result.CornersPerLap,
-			AvgLaptime:      result.AvgLaptime,
-			AvgQualiLaps:      result.AvgQualiLaps,
-			WeatherRH:       result.WeatherRH,
-			WeatherTemp:       result.WeatherTemp,
-		}
-		racestats, err := c.db.InsertRaceStats(stats)
-		if err != nil {
-			log.Errorf("could not store race stats [%d] in database: %v", stats, err)
-		}
-		log.Debugf("Race stats: %v", racestats)
+		log.Debugf("Driver result: %s", row)
 	}
 }

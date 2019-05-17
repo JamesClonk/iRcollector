@@ -22,7 +22,7 @@ applications:
   path: .
 
   env:
-    LOG_LEVEL: debug
+    LOG_LEVEL: info
     IR_USERNAME: ((ir_username))
     IR_PASSWORD: ((ir_password))
     AUTH_USERNAME: ((auth_username))

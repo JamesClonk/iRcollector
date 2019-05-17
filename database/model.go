@@ -1,6 +1,9 @@
 package database
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Series struct {
 	SeriesID        int    `db:"pk_series_id"`
@@ -41,7 +44,7 @@ type RaceWeek struct {
 	TrackID    int `db:"fk_track_id"` // foreign-key to Track.TrackID
 }
 
-type RaceWeekResults struct {
+type RaceWeekResult struct {
 	RaceWeekID      int       `db:"fk_raceweek_id"` // foreign-key to RaceWeek.RaceWeekID
 	StartTime       time.Time `db:"starttime"`
 	CarClassID      int       `db:"car_class_id"`
@@ -54,16 +57,20 @@ type RaceWeekResults struct {
 }
 
 type RaceStats struct {
-	SubsessionID    	int       `db:"fk_subsession_id"` // foreign-key to RaceWeek.SubsessionID
-	StartTime       	time.Time 	  `db:"starttime"`
-	SimulatedStartTime  time.Time    `db:"simulated_starttime"`
-	LeadChanges      	int       `db:"lead_changes"`
-	Laps      			int       `db:"laps"`
-	Cautions      		int       `db:"cautions"`
-	CautionLaps      	int       `db:"caution_laps"`
-	CornersPerLap      	int       `db:"corners_per_lap"`
-	AvgLaptime      	int       `db:"avg_laptime"`
-	AvgQualiLaps      	int       `db:"avg_quali_laps"`
-	WeatherRH      		int       `db:"weather_rh"`
-	WeatherTemp      	int       `db:"weather_temp"`
+	SubsessionID       int       `db:"fk_subsession_id"` // foreign-key to RaceWeek.SubsessionID
+	StartTime          time.Time `db:"starttime"`
+	SimulatedStartTime time.Time `db:"simulated_starttime"`
+	LeadChanges        int       `db:"lead_changes"`
+	Laps               int       `db:"laps"`
+	Cautions           int       `db:"cautions"`
+	CautionLaps        int       `db:"caution_laps"`
+	CornersPerLap      int       `db:"corners_per_lap"`
+	AvgLaptime         Laptime   `db:"avg_laptime"`
+	AvgQualiLaps       int       `db:"avg_quali_laps"`
+	WeatherRH          int       `db:"weather_rh"`
+	WeatherTemp        int       `db:"weather_temp"`
+}
+
+func (rs RaceStats) String() string {
+	return fmt.Sprintf("[ AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d ]", rs.AvgLaptime, rs.Laps, rs.LeadChanges, rs.Cautions)
 }

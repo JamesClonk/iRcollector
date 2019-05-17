@@ -12,7 +12,7 @@ type Database interface {
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
-	UpsertRaceWeekResults(RaceWeekResults) error
+	UpsertRaceWeekResults(RaceWeekResult) error
 	InsertRaceStats(RaceStats) (RaceStats, error)
 	GetRaceStatsBySubsessionID(int) (RaceStats, error)
 }
@@ -182,7 +182,7 @@ func (db *database) GetRaceWeekBySeasonIDAndWeek(seasonID, week int) (RaceWeek, 
 	return raceweek, nil
 }
 
-func (db *database) UpsertRaceWeekResults(results RaceWeekResults) error {
+func (db *database) UpsertRaceWeekResults(result RaceWeekResult) error {
 	tx, err := db.Beginx()
 	if err != nil {
 		return err
@@ -207,8 +207,8 @@ func (db *database) UpsertRaceWeekResults(results RaceWeekResults) error {
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(
-		results.RaceWeekID, results.StartTime, results.CarClassID, results.TrackID,
-		results.SessionID, results.SubsessionID, results.Official, results.SizeOfField, results.StrengthOfField); err != nil {
+		result.RaceWeekID, result.StartTime, result.CarClassID, result.TrackID,
+		result.SessionID, result.SubsessionID, result.Official, result.SizeOfField, result.StrengthOfField); err != nil {
 		tx.Rollback()
 		return err
 	}
