@@ -82,7 +82,7 @@ func season(c *collector.Collector) func(rw http.ResponseWriter, req *http.Reque
 			return
 		}
 
-		c.CollectSeason(seasonID)
+		go c.CollectSeason(seasonID)
 		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.Write([]byte(`{ "status": "ok" }`))
@@ -109,7 +109,7 @@ func week(c *collector.Collector) func(rw http.ResponseWriter, req *http.Request
 			return
 		}
 
-		c.CollectRaceWeek(seasonID, week)
+		go c.CollectRaceWeek(seasonID, week)
 		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.Write([]byte(`{ "status": "ok" }`))

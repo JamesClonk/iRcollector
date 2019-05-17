@@ -223,7 +223,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 	// collect race result
 	result, err := c.client.GetRaceResult(rws.SubsessionID)
 	if err != nil {
-		log.Errorf("could not get race result for subsession-id [%d]: %v", rws.SubsessionID, err)
+		log.Errorf("could not get race result [subsessionID:%d]: %v", rws.SubsessionID, err)
 		return
 	}
 	//log.Debugf("Result: %v", result)
@@ -234,7 +234,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 
 	// insert race stats
 	stats := database.RaceStats{
-		SubsessionID:       rws.SubsessionID,
+		SubsessionID:       result.SubsessionID,
 		StartTime:          result.StartTime.Time,
 		SimulatedStartTime: result.SimulatedStartTime.Time,
 		LeadChanges:        result.LeadChanges,
@@ -285,7 +285,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 		// insert driver result
 		carnum, _ := strconv.Atoi(row.CarNumber)
 		rr := database.RaceResult{
-			SubsessionID:             rws.SubsessionID,
+			SubsessionID:             result.SubsessionID,
 			Driver:                   driver,
 			IRatingBefore:            row.IRatingBefore,
 			IRatingAfter:             row.IRatingAfter,
@@ -316,7 +316,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 		}
 		result, err := c.db.InsertRaceResult(rr)
 		if err != nil {
-			log.Errorf("could not store race result [subsessionID:%d] for driver [%s] in database: %v", rws.SubsessionID, driver.Name, err)
+			log.Errorf("could not store race result [subsessionID:%d] for driver [%s] in database: %v", result.SubsessionID, driver.Name, err)
 		}
 		log.Debugf("Race result: %s", result)
 	}

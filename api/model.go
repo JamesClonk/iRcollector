@@ -26,6 +26,7 @@ type CareerStats struct {
 type RaceResult struct {
 	LeadChanges        int             `json:"nleadchanges"`
 	RaceWeek           int             `json:"race_week_num"`
+	SubsessionID       int             `json:"subsessionid"`
 	SessionID          int             `json:"sessionid"`
 	Cautions           int             `json:"ncautions"`
 	Laps               int             `json:"eventlapscomplete"`
@@ -42,7 +43,8 @@ type RaceResult struct {
 }
 
 func (rr RaceResult) String() string {
-	return fmt.Sprintf("[ AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d, SOF: %d ]", rr.AvgLaptime, rr.Laps, rr.LeadChanges, rr.Cautions, rr.SOF)
+	return fmt.Sprintf("[ SubsessionID: %d, AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d, SOF: %d ]",
+		rr.SubsessionID, rr.AvgLaptime, rr.Laps, rr.LeadChanges, rr.Cautions, rr.SOF)
 }
 
 type RaceResultRow struct {
@@ -161,7 +163,7 @@ type RaceWeekResult struct {
 }
 
 func (rws RaceWeekResult) String() string {
-	return fmt.Sprintf("[ Week: %d, Time: %s, Drivers: %d, SOF: %d ]", rws.RaceWeek, rws.StartTime, rws.SizeOfField, rws.StrengthOfField)
+	return fmt.Sprintf("[ SubsessionID: %d, Week: %d, Time: %s, Drivers: %d, SOF: %d ]", rws.SubsessionID, rws.RaceWeek, rws.StartTime, rws.SizeOfField, rws.StrengthOfField)
 }
 
 /*

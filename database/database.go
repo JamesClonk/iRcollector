@@ -314,7 +314,7 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 			laps_completed, laps_lead, incidents, reason_out, session_starttime)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
 				$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
-		on conflict on constraint uniq_race_result do nothing`)
+		on conflict do nothing`)
 	if err != nil {
 		return RaceResult{}, err
 	}

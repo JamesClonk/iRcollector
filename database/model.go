@@ -72,7 +72,7 @@ type RaceStats struct {
 }
 
 func (rs RaceStats) String() string {
-	return fmt.Sprintf("[ AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d ]", rs.AvgLaptime, rs.Laps, rs.LeadChanges, rs.Cautions)
+	return fmt.Sprintf("[ SubsessionID: %d, AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d ]", rs.SubsessionID, rs.AvgLaptime, rs.Laps, rs.LeadChanges, rs.Cautions)
 }
 
 type Club struct {
@@ -118,7 +118,7 @@ type RaceResult struct {
 }
 
 func (rr RaceResult) String() string {
-	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
-		rr.FinishingPosition, rr.Driver.Name, rr.Driver.Club.Name, rr.AvgLaptime, rr.LapsLead, rr.LapsCompleted,
+	return fmt.Sprintf("[ SubsessionID: %d, Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
+		rr.SubsessionID, rr.FinishingPosition, rr.Driver.Name, rr.Driver.Club.Name, rr.AvgLaptime, rr.LapsLead, rr.LapsCompleted,
 		rr.IRatingAfter, rr.Incidents, rr.ChampPoints, rr.ClubPoints, rr.ReasonOut)
 }
