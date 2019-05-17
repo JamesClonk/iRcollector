@@ -198,11 +198,10 @@ func (db *database) UpsertRaceWeekResults(result RaceWeekResult) error {
 		insert into raceweek_results
 			(fk_raceweek_id, starttime, car_class_id, fk_track_id, session_id, subsession_id, official, size, sof)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		on conflict (fk_raceweek_id, starttime) do update
+		on conflict (subsession_id) do update
 		set car_class_id = excluded.car_class_id,
 			fk_track_id = excluded.fk_track_id,
 			session_id = excluded.session_id,
-			subsession_id = excluded.subsession_id,
 			official = excluded.official,
 			size = excluded.size,
 			sof = excluded.sof`)
