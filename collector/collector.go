@@ -187,26 +187,36 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 	raceweek, err := c.db.InsertRaceWeek(r)
 	if err != nil {
 		log.Errorf("could not store raceweek [%d] in database: %v", r.RaceWeek, err)
+		return
+	}
+	if raceweek.RaceWeekID <= 0 {
+		log.Errorf("empty raceweek: %s", raceweek)
+		return
 	}
 	log.Debugf("Raceweek: %v", raceweek)
 
 	// upsert raceweek results
-	for _, result := range results {
-		log.Debugf("Race week result: %s", result)
+	for _, r := range results {
+		log.Debugf("Race week result: %s", r)
 		rs := database.RaceWeekResult{
 			RaceWeekID:      raceweek.RaceWeekID,
-			StartTime:       result.StartTime,
-			CarClassID:      result.CarClassID,
-			TrackID:         result.TrackID,
-			SessionID:       result.SessionID,
-			SubsessionID:    result.SubsessionID,
-			Official:        result.Official,
-			SizeOfField:     result.SizeOfField,
-			StrengthOfField: result.StrengthOfField,
+			StartTime:       r.StartTime,
+			CarClassID:      r.CarClassID,
+			TrackID:         r.TrackID,
+			SessionID:       r.SessionID,
+			SubsessionID:    r.SubsessionID,
+			Official:        r.Official,
+			SizeOfField:     r.SizeOfField,
+			StrengthOfField: r.StrengthOfField,
 		}
-		if err := c.db.InsertRaceWeekResult(rs); err != nil {
-			log.Errorf("could not store raceweek result [%s] in database: %v", result.StartTime, err)
+		result, err := c.db.InsertRaceWeekResult(rs)
+		if err != nil {
+			log.Errorf("could not store raceweek result [subsessionID:%s] in database: %v", r.SubsessionID, err)
 			continue
+		}
+		if result.SubsessionID <= 0 {
+			log.Errorf("empty raceweek result: %s", result)
+			return
 		}
 
 		// skip unofficial races
@@ -219,7 +229,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 	}
 }
 
-func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
+func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
 	// collect race result
 	result, err := c.client.GetRaceResult(rws.SubsessionID)
 	if err != nil {
@@ -227,7 +237,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 		return
 	}
 	//log.Debugf("Result: %v", result)
-	if result.Laps == 0 { // skip invalid race results
+	if result.Laps <= 0 { // skip invalid race results
 		log.Errorf("invalid race result: %v", result)
 		return
 	}
@@ -250,6 +260,11 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 	racestats, err := c.db.InsertRaceStats(stats)
 	if err != nil {
 		log.Errorf("could not store race stats [%s] in database: %v", stats, err)
+		return
+	}
+	if racestats.SubsessionID <= 0 {
+		log.Errorf("empty race stats: %s", stats)
+		return
 	}
 	log.Debugf("Race stats: %s", racestats)
 
@@ -317,6 +332,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 		result, err := c.db.InsertRaceResult(rr)
 		if err != nil {
 			log.Errorf("could not store race result [subsessionID:%d] for driver [%s] in database: %v", result.SubsessionID, driver.Name, err)
+			continue
 		}
 		log.Debugf("Race result: %s", result)
 	}

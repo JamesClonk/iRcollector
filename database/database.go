@@ -12,7 +12,8 @@ type Database interface {
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
-	InsertRaceWeekResult(RaceWeekResult) error
+	InsertRaceWeekResult(RaceWeekResult) (RaceWeekResult, error)
+	GetRaceWeekResultBySubsessionID(int) (RaceWeekResult, error)
 	InsertRaceStats(RaceStats) (RaceStats, error)
 	GetRaceStatsBySubsessionID(int) (RaceStats, error)
 	UpsertClub(Club) error
@@ -188,23 +189,43 @@ func (db *database) GetRaceWeekBySeasonIDAndWeek(seasonID, week int) (RaceWeek, 
 	return raceweek, nil
 }
 
-func (db *database) InsertRaceWeekResult(result RaceWeekResult) error {
+func (db *database) InsertRaceWeekResult(result RaceWeekResult) (RaceWeekResult, error) {
 	stmt, err := db.Preparex(`
 		insert into raceweek_results
 			(fk_raceweek_id, starttime, car_class_id, fk_track_id, session_id, subsession_id, official, size, sof)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		on conflict do nothing`)
 	if err != nil {
-		return err
+		return RaceWeekResult{}, err
 	}
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(
 		result.RaceWeekID, result.StartTime, result.CarClassID, result.TrackID,
 		result.SessionID, result.SubsessionID, result.Official, result.SizeOfField, result.StrengthOfField); err != nil {
-		return err
+		return RaceWeekResult{}, err
 	}
-	return nil
+	return db.GetRaceWeekResultBySubsessionID(result.SubsessionID)
+}
+
+func (db *database) GetRaceWeekResultBySubsessionID(subsessionID int) (RaceWeekResult, error) {
+	result := RaceWeekResult{}
+	if err := db.Get(&result, `
+		select
+			r.fk_raceweek_id,
+			r.starttime,
+			r.car_class_id,
+			r.fk_track_id,
+			r.session_id,
+			r.subsession_id,
+			r.official,
+			r.size,
+			r.sof
+		from raceweek_results r
+		where r.subsession_id = $1`, subsessionID); err != nil {
+		return RaceWeekResult{}, err
+	}
+	return result, nil
 }
 
 func (db *database) InsertRaceStats(racestats RaceStats) (RaceStats, error) {
