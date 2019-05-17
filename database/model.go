@@ -74,3 +74,14 @@ type RaceStats struct {
 func (rs RaceStats) String() string {
 	return fmt.Sprintf("[ AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d ]", rs.AvgLaptime, rs.Laps, rs.LeadChanges, rs.Cautions)
 }
+
+type Club struct {
+	ClubID int    `db:"pk_club_id"`
+	Name   string `db:"name"`
+}
+
+type Driver struct {
+	DriverID int    `db:"pk_driver_id"`
+	Name     string `db:"name"`
+	ClubID   int    `db:"fk_club_id"` // foreign-key to Club.ClubID
+}

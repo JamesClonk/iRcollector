@@ -263,5 +263,24 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 		}
 
 		log.Debugf("Driver result: %s", row)
+
+		// update club & driver
+		club := database.Club{
+			ClubID: row.ClubID,
+			Name:   row.Club.String(),
+		}
+		if err := c.db.UpsertClub(club); err != nil {
+			log.Errorf("could not store club [%s] in database: %v", club.Name, err)
+			continue
+		}
+		driver := database.Driver{
+			DriverID: row.RacerID,
+			Name:     row.RacerName.String(),
+			ClubID:   row.ClubID,
+		}
+		if err := c.db.UpsertDriver(driver); err != nil {
+			log.Errorf("could not store driver [%s] in database: %v", driver.Name, err)
+			continue
+		}
 	}
 }

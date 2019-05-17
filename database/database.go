@@ -15,6 +15,8 @@ type Database interface {
 	UpsertRaceWeekResults(RaceWeekResult) error
 	InsertRaceStats(RaceStats) (RaceStats, error)
 	GetRaceStatsBySubsessionID(int) (RaceStats, error)
+	UpsertClub(Club) error
+	UpsertDriver(Driver) error
 }
 
 type database struct {
@@ -257,4 +259,55 @@ func (db *database) GetRaceStatsBySubsessionID(subsessionID int) (RaceStats, err
 		return RaceStats{}, err
 	}
 	return racestats, nil
+}
+
+func (db *database) UpsertClub(club Club) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Preparex(`
+		insert into clubs
+			(pk_club_id, name)
+		values ($1, $2)
+		on conflict (pk_club_id) do update
+		set name = excluded.name`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(club.ClubID, club.Name); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (db *database) UpsertDriver(driver Driver) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Preparex(`
+		insert into drivers
+			(pk_driver_id, name, fk_club_id)
+		values ($1, $2, $3)
+		on conflict (pk_driver_id) do update
+		set name = excluded.name,
+			fk_club_id = excluded.fk_club_id`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(driver.DriverID, driver.Name, driver.ClubID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
