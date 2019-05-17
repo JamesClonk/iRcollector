@@ -57,7 +57,7 @@ type RaceWeekResult struct {
 }
 
 type RaceStats struct {
-	SubsessionID       int       `db:"fk_subsession_id"` // foreign-key to RaceWeek.SubsessionID
+	SubsessionID       int       `db:"fk_subsession_id"` // foreign-key to RaceWeekResult.SubsessionID
 	StartTime          time.Time `db:"starttime"`
 	SimulatedStartTime time.Time `db:"simulated_starttime"`
 	LeadChanges        int       `db:"lead_changes"`
@@ -83,5 +83,42 @@ type Club struct {
 type Driver struct {
 	DriverID int    `db:"pk_driver_id"`
 	Name     string `db:"name"`
-	ClubID   int    `db:"fk_club_id"` // foreign-key to Club.ClubID
+	Club     Club
+}
+
+type RaceResult struct {
+	SubsessionID             int `db:"fk_subsession_id"` // foreign-key to RaceWeekResult.SubsessionID
+	Driver                   Driver
+	IRatingBefore            int     `db:"old_irating"`
+	IRatingAfter             int     `db:"new_irating"`
+	LicenseLevelBefore       int     `db:"old_license_level"`
+	LicenseLevelAfter        int     `db:"new_license_level"`
+	SafetyRatingBefore       int     `db:"old_safety_rating"`
+	SafetyRatingAfter        int     `db:"new_safety_rating"`
+	CPIBefore                float64 `db:"old_cpi"`
+	CPIAfter                 float64 `db:"new_cpi"`
+	LicenseGroup             int     `db:"license_group"`
+	AggregateChampPoints     int     `db:"aggregate_champpoints"`
+	ChampPoints              int     `db:"champpoints"`
+	ClubPoints               int     `db:"clubpoints"`
+	CarNumber                int     `db:"car_number"`
+	StartingPosition         int     `db:"starting_position"`
+	Position                 int     `db:"position"`
+	FinishingPosition        int     `db:"finishing_position"`
+	FinishingPositionInClass int     `db:"finishing_position_in_class"`
+	Division                 int     `db:"division"`
+	Interval                 int     `db:"interval"`
+	ClassInterval            int     `db:"class_interval"`
+	AvgLaptime               Laptime `db:"avg_laptime"`
+	LapsCompleted            int     `db:"laps_completed"`
+	LapsLead                 int     `db:"laps_lead"`
+	Incidents                int     `db:"incidents"`
+	ReasonOut                string  `db:"reason_out"`
+	SessionStartTime         int64   `db:"session_starttime"`
+}
+
+func (rr RaceResult) String() string {
+	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
+		rr.FinishingPosition, rr.Driver.Name, rr.Driver.Club.Name, rr.AvgLaptime, rr.LapsLead, rr.LapsCompleted,
+		rr.IRatingAfter, rr.Incidents, rr.ChampPoints, rr.ClubPoints, rr.ReasonOut)
 }

@@ -125,7 +125,7 @@ func (c *Collector) Run() {
 			}
 		}
 
-		time.Sleep(77 * time.Minute)
+		time.Sleep(99 * time.Minute)
 	}
 }
 
@@ -249,7 +249,7 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 	}
 	racestats, err := c.db.InsertRaceStats(stats)
 	if err != nil {
-		log.Errorf("could not store race stats [%d] in database: %v", stats, err)
+		log.Errorf("could not store race stats [%s] in database: %v", stats, err)
 	}
 	log.Debugf("Race stats: %s", racestats)
 
@@ -261,7 +261,6 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 			// skip anything that's not a race session entry
 			continue
 		}
-
 		log.Debugf("Driver result: %s", row)
 
 		// update club & driver
@@ -276,11 +275,49 @@ func (c *Collector) CollectRaceStats(rws api.RaceWeekResult) {
 		driver := database.Driver{
 			DriverID: row.RacerID,
 			Name:     row.RacerName.String(),
-			ClubID:   row.ClubID,
+			Club:     club,
 		}
 		if err := c.db.UpsertDriver(driver); err != nil {
 			log.Errorf("could not store driver [%s] in database: %v", driver.Name, err)
 			continue
 		}
+
+		// insert driver result
+		carnum, _ := strconv.Atoi(row.CarNumber)
+		rr := database.RaceResult{
+			SubsessionID:             rws.SubsessionID,
+			Driver:                   driver,
+			IRatingBefore:            row.IRatingBefore,
+			IRatingAfter:             row.IRatingAfter,
+			LicenseLevelBefore:       row.LicenseLevelBefore,
+			LicenseLevelAfter:        row.LicenseLevelAfter,
+			SafetyRatingBefore:       row.SafetyRatingBefore,
+			SafetyRatingAfter:        row.SafetyRatingAfter,
+			CPIBefore:                row.CPIBefore,
+			CPIAfter:                 row.CPIAfter,
+			LicenseGroup:             row.LicenseGroup,
+			AggregateChampPoints:     row.AggregateChampPoints,
+			ChampPoints:              row.ChampPoints,
+			ClubPoints:               row.ClubPoints,
+			CarNumber:                carnum,
+			StartingPosition:         row.StartingPosition,
+			Position:                 row.Position,
+			FinishingPosition:        row.FinishingPosition,
+			FinishingPositionInClass: row.FinishingPositionInClass,
+			Division:                 row.Division,
+			Interval:                 row.Interval,
+			ClassInterval:            row.ClassInterval,
+			AvgLaptime:               database.Laptime(int(row.AvgLaptime)),
+			LapsCompleted:            row.LapsCompleted,
+			LapsLead:                 row.LapsLead,
+			Incidents:                row.Incidents,
+			ReasonOut:                row.ReasonOut,
+			SessionStartTime:         row.SessionStartTime,
+		}
+		result, err := c.db.InsertRaceResult(rr)
+		if err != nil {
+			log.Errorf("could not store race result [subsessionID:%d] for driver [%s] in database: %v", rws.SubsessionID, driver.Name, err)
+		}
+		log.Debugf("Race result: %s", result)
 	}
 }
