@@ -141,11 +141,14 @@ func (db *database) UpsertTrack(track Track) error {
 }
 
 func (db *database) InsertRaceWeek(raceweek RaceWeek) (RaceWeek, error) {
+	if rw, err := db.GetRaceWeekBySeasonIDAndWeek(raceweek.SeasonID, raceweek.RaceWeek); err == nil && rw.SeasonID > 0 {
+		return rw, nil
+	}
+
 	stmt, err := db.Preparex(`
 		insert into raceweeks
 			(raceweek, fk_track_id, fk_season_id)
-		values ($1, $2, $3)
-		on conflict on constraint uniq_raceweek do nothing`)
+		values ($1, $2, $3)`)
 	if err != nil {
 		return RaceWeek{}, err
 	}
@@ -190,11 +193,14 @@ func (db *database) GetRaceWeekBySeasonIDAndWeek(seasonID, week int) (RaceWeek, 
 }
 
 func (db *database) InsertRaceWeekResult(result RaceWeekResult) (RaceWeekResult, error) {
+	if r, err := db.GetRaceWeekResultBySubsessionID(result.SubsessionID); err == nil && r.SubsessionID > 0 {
+		return r, nil
+	}
+
 	stmt, err := db.Preparex(`
 		insert into raceweek_results
 			(fk_raceweek_id, starttime, car_class_id, fk_track_id, session_id, subsession_id, official, size, sof)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		on conflict do nothing`)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
 	if err != nil {
 		return RaceWeekResult{}, err
 	}
@@ -229,12 +235,15 @@ func (db *database) GetRaceWeekResultBySubsessionID(subsessionID int) (RaceWeekR
 }
 
 func (db *database) InsertRaceStats(racestats RaceStats) (RaceStats, error) {
+	if rs, err := db.GetRaceStatsBySubsessionID(racestats.SubsessionID); err == nil && rs.SubsessionID > 0 {
+		return rs, nil
+	}
+
 	stmt, err := db.Preparex(`
 		insert into race_stats
 			(fk_subsession_id, starttime, simulated_starttime, lead_changes, laps,
 			cautions, caution_laps, corners_per_lap, avg_laptime, avg_quali_laps, weather_rh, weather_temp)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		on conflict do nothing`)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`)
 	if err != nil {
 		return RaceStats{}, err
 	}
@@ -324,6 +333,10 @@ func (db *database) UpsertDriver(driver Driver) error {
 }
 
 func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
+	if rr, err := db.GetRaceResultBySubsessionIDAndDriverID(result.SubsessionID, result.Driver.DriverID); err == nil && rr.SubsessionID > 0 {
+		return rr, nil
+	}
+
 	stmt, err := db.Preparex(`
 		insert into race_results
 			(fk_subsession_id, fk_driver_id,
@@ -334,8 +347,7 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 			division, interval, class_interval, avg_laptime,
 			laps_completed, laps_lead, incidents, reason_out, session_starttime)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-				$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
-		on conflict do nothing`)
+				$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`)
 	if err != nil {
 		return RaceResult{}, err
 	}

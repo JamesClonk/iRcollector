@@ -211,7 +211,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		}
 		result, err := c.db.InsertRaceWeekResult(rs)
 		if err != nil {
-			log.Errorf("could not store raceweek result [subsessionID:%s] in database: %v", r.SubsessionID, err)
+			log.Errorf("could not store raceweek result [subsessionID:%d] in database: %v", r.SubsessionID, err)
 			continue
 		}
 		if result.SubsessionID <= 0 {

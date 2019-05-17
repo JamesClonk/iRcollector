@@ -63,6 +63,5 @@ CREATE TABLE IF NOT EXISTS raceweek_results (
     fk_track_id     INTEGER NOT NULL,
     fk_raceweek_id  INTEGER NOT NULL,
     FOREIGN KEY (fk_track_id) REFERENCES tracks (pk_track_id) ON DELETE CASCADE,
-    FOREIGN KEY (fk_raceweek_id) REFERENCES raceweeks (pk_raceweek_id) ON DELETE CASCADE,
-    CONSTRAINT uniq_raceweek_result UNIQUE (fk_raceweek_id, starttime)
+    FOREIGN KEY (fk_raceweek_id) REFERENCES raceweeks (pk_raceweek_id) ON DELETE CASCADE
 );
