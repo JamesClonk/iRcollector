@@ -12,7 +12,7 @@ type Database interface {
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
-	UpsertRaceWeekResults(RaceWeekResult) error
+	InsertRaceWeekResult(RaceWeekResult) error
 	InsertRaceStats(RaceStats) (RaceStats, error)
 	GetRaceStatsBySubsessionID(int) (RaceStats, error)
 	UpsertClub(Club) error
@@ -188,25 +188,13 @@ func (db *database) GetRaceWeekBySeasonIDAndWeek(seasonID, week int) (RaceWeek, 
 	return raceweek, nil
 }
 
-func (db *database) UpsertRaceWeekResults(result RaceWeekResult) error {
-	tx, err := db.Beginx()
-	if err != nil {
-		return err
-	}
-
-	stmt, err := tx.Preparex(`
+func (db *database) InsertRaceWeekResult(result RaceWeekResult) error {
+	stmt, err := db.Preparex(`
 		insert into raceweek_results
 			(fk_raceweek_id, starttime, car_class_id, fk_track_id, session_id, subsession_id, official, size, sof)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		on conflict (subsession_id) do update
-		set car_class_id = excluded.car_class_id,
-			fk_track_id = excluded.fk_track_id,
-			session_id = excluded.session_id,
-			official = excluded.official,
-			size = excluded.size,
-			sof = excluded.sof`)
+		on conflict do nothing`)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
 	defer stmt.Close()
@@ -214,10 +202,9 @@ func (db *database) UpsertRaceWeekResults(result RaceWeekResult) error {
 	if _, err = stmt.Exec(
 		result.RaceWeekID, result.StartTime, result.CarClassID, result.TrackID,
 		result.SessionID, result.SubsessionID, result.Official, result.SizeOfField, result.StrengthOfField); err != nil {
-		tx.Rollback()
 		return err
 	}
-	return tx.Commit()
+	return nil
 }
 
 func (db *database) InsertRaceStats(racestats RaceStats) (RaceStats, error) {

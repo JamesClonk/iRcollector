@@ -204,7 +204,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 			SizeOfField:     result.SizeOfField,
 			StrengthOfField: result.StrengthOfField,
 		}
-		if err := c.db.UpsertRaceWeekResults(rs); err != nil {
+		if err := c.db.InsertRaceWeekResult(rs); err != nil {
 			log.Errorf("could not store raceweek result [%s] in database: %v", result.StartTime, err)
 			continue
 		}
