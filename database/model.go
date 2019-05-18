@@ -134,5 +134,5 @@ type TimeRanking struct {
 }
 
 func (r TimeRanking) String() string {
-	return fmt.Sprintf("[ Name: %d, Race: %s, TT: %s ]", r.Driver.Name, r.Race, r.TimeTrial)
+	return fmt.Sprintf("[ Name: %s, Race: %s, TT: %s ]", r.Driver.Name, r.Race, r.TimeTrial)
 }
