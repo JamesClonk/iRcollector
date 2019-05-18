@@ -37,6 +37,16 @@ func (c *Collector) Database() database.Database {
 func (c *Collector) Run() {
 	seasonrx := regexp.MustCompile(`20[1-5][0-9] Season [1-4]`) // "2019 Season 2"
 
+	rankings, err := c.client.GetTimeRankings(2019, 2, 4, 212)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	for _, ranking := range rankings {
+		log.Infof("%v", ranking)
+	}
+
+	time.Sleep(111 * time.Hour)
+
 	for {
 		series, err := c.db.GetSeries()
 		if err != nil {
