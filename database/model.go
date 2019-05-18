@@ -122,3 +122,17 @@ func (rr RaceResult) String() string {
 		rr.SubsessionID, rr.FinishingPosition, rr.Driver.Name, rr.Driver.Club.Name, rr.AvgLaptime, rr.LapsLead, rr.LapsCompleted,
 		rr.IRatingAfter, rr.Incidents, rr.ChampPoints, rr.ClubPoints, rr.ReasonOut)
 }
+
+type TimeRanking struct {
+	Driver       Driver
+	RaceWeek     RaceWeek
+	CarClassID   int     `db:"car_class_id"`
+	TimeTrial    Laptime `db:"time_trial"`
+	Race         Laptime `db:"race"`
+	LicenseClass string  `db:"license_class"`
+	IRating      int     `db:"irating"`
+}
+
+func (r TimeRanking) String() string {
+	return fmt.Sprintf("[ Name: %d, Race: %s, TT: %s ]", r.Driver.Name, r.Race, r.TimeTrial)
+}

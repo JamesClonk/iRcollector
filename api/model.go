@@ -214,9 +214,9 @@ type TimeRanking struct {
 	DriverName    encodedString `json:"displayname"`
 	ClubID        int           `json:"clubid"`
 	ClubName      encodedString `json:"clubname"`
-	TimeTrialTime string        `json:"timetrial"`
-	RaceTime      string        `json:"race"`
-	LicenseClass  string        `json:"licenseclass"`
+	TimeTrialTime encodedString `json:"timetrial"`
+	RaceTime      encodedString `json:"race"`
+	LicenseClass  encodedString `json:"licenseclass"`
 	IRating       int           `json:"irating"`
 }
 

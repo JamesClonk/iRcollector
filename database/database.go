@@ -8,8 +8,10 @@ type Database interface {
 	GetSeries() ([]Series, error)
 	GetSeasons() ([]Season, error)
 	GetSeasonsBySeriesID(int) ([]Season, error)
+	GetSeasonByID(int) (Season, error)
 	UpsertSeason(Season) error
 	UpsertTrack(Track) error
+	UpsertTimeRanking(TimeRanking) error
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
@@ -94,6 +96,27 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 	return seasons, nil
 }
 
+func (db *database) GetSeasonByID(seasonID int) (Season, error) {
+	season := Season{}
+	if err := db.Get(&season, `
+		select
+			s.pk_season_id,
+			s.fk_series_id,
+			s.year,
+			s.quarter,
+			s.category,
+			s.name,
+			s.short_name,
+			s.banner_image,
+			s.panel_image,
+			s.logo_image
+		from seasons s
+		where s.pk_season_id = $1`, seasonID); err != nil {
+		return season, err
+	}
+	return season, nil
+}
+
 func (db *database) UpsertSeason(season Season) error {
 	tx, err := db.Beginx()
 	if err != nil {
@@ -164,6 +187,37 @@ func (db *database) UpsertTrack(track Track) error {
 	return tx.Commit()
 }
 
+func (db *database) UpsertTimeRanking(r TimeRanking) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Preparex(`
+		insert into time_rankings
+			(fk_driver_id, fk_raceweek_id, car_class_id, race, time_trial, license_class, irating)
+		values ($1, $2, $3, $4, $5, $6, $7)
+		on conflict on constraint uniq_time_ranking do update
+		set race = excluded.race,
+			time_trial = excluded.time_trial,
+			license_class = excluded.license_class,
+			irating = excluded.irating`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(
+		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.CarClassID,
+		r.Race, r.TimeTrial, r.LicenseClass, r.IRating,
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (db *database) InsertRaceWeek(raceweek RaceWeek) (RaceWeek, error) {
 	if rw, err := db.GetRaceWeekBySeasonIDAndWeek(raceweek.SeasonID, raceweek.RaceWeek); err == nil && rw.SeasonID > 0 {
 		return rw, nil
@@ -195,7 +249,7 @@ func (db *database) GetRaceWeekByID(id int) (RaceWeek, error) {
 			r.fk_season_id
 		from raceweeks r
 		where r.pk_raceweek_id = $1`, id); err != nil {
-		return RaceWeek{}, err
+		return raceweek, err
 	}
 	return raceweek, nil
 }
@@ -211,7 +265,7 @@ func (db *database) GetRaceWeekBySeasonIDAndWeek(seasonID, week int) (RaceWeek, 
 		from raceweeks r
 		where r.fk_season_id = $1
 		and r.raceweek = $2`, seasonID, week); err != nil {
-		return RaceWeek{}, err
+		return raceweek, err
 	}
 	return raceweek, nil
 }
@@ -253,7 +307,7 @@ func (db *database) GetRaceWeekResultBySubsessionID(subsessionID int) (RaceWeekR
 			r.sof
 		from raceweek_results r
 		where r.subsession_id = $1`, subsessionID); err != nil {
-		return RaceWeekResult{}, err
+		return result, err
 	}
 	return result, nil
 }
@@ -323,7 +377,7 @@ func (db *database) GetRaceStatsBySubsessionID(subsessionID int) (RaceStats, err
 			r.weather_temp
 		from race_stats r
 		where r.fk_subsession_id = $1`, subsessionID); err != nil {
-		return RaceStats{}, err
+		return racestats, err
 	}
 	return racestats, nil
 }
@@ -461,7 +515,7 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 		&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
 		&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
 	); err != nil {
-		return RaceResult{}, err
+		return r, err
 	}
 	return r, nil
 }
@@ -537,7 +591,7 @@ func (db *database) GetClubByID(id int) (Club, error) {
 			c.name
 		from clubs c
 		where c.pk_club_id = $1`, id); err != nil {
-		return Club{}, err
+		return club, err
 	}
 	return club, nil
 }
@@ -555,7 +609,7 @@ func (db *database) GetDriverByID(id int) (Driver, error) {
 		where d.pk_driver_id = $1`, id).Scan(
 		&d.Club.Name, &d.Club.ClubID, &d.DriverID, &d.Name,
 	); err != nil {
-		return Driver{}, err
+		return d, err
 	}
 	return d, nil
 }

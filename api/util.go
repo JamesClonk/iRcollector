@@ -47,6 +47,22 @@ func (e encodedString) String() string {
 	return decode(string(e))
 }
 
+func (e encodedString) Laptime() int {
+	input := e.String()
+	if len(input) == 0 {
+		return -1
+	}
+	input = strings.Replace(input, ":", "m", -1)
+	input = strings.Replace(input, ".", "s", -1)
+	input = input + "ms"
+
+	d, err := time.ParseDuration(input)
+	if err != nil {
+		return -1
+	}
+	return int(d.Nanoseconds() / 1000 / 100)
+}
+
 func decode(value string) string {
 	decodedValue, err := url.QueryUnescape(value)
 	if err != nil {

@@ -8,23 +8,23 @@ import (
 	"github.com/JamesClonk/iRcollector/log"
 )
 
-func (c *Client) GetTimeTrialTimeRankings(season, quarter, carID, trackID int) ([]TimeRanking, error) {
+func (c *Client) GetTimeTrialTimeRankings(season, quarter, carID, trackID, limit int) ([]TimeRanking, error) {
 	log.Infof("Get time trial ranking for [%dS%d] ...", season, quarter)
-	return c.getTimeRankings("timetrial", season, quarter, carID, trackID)
+	return c.getTimeRankings("timetrial", season, quarter, carID, trackID, limit)
 }
 
-func (c *Client) GetRaceTimeRankings(season, quarter, carID, trackID int) ([]TimeRanking, error) {
+func (c *Client) GetRaceTimeRankings(season, quarter, carID, trackID, limit int) ([]TimeRanking, error) {
 	log.Infof("Get race time ranking for [%dS%d] ...", season, quarter)
-	return c.getTimeRankings("race", season, quarter, carID, trackID)
+	return c.getTimeRankings("race", season, quarter, carID, trackID, limit)
 }
 
 func (c *Client) GetTimeRankings(season, quarter, carID, trackID int) ([]TimeRanking, error) {
-	timeTrialRankings, err := c.GetTimeTrialTimeRankings(season, quarter, carID, trackID)
+	timeTrialRankings, err := c.GetTimeTrialTimeRankings(season, quarter, carID, trackID, 30)
 	if err != nil {
 		return nil, err
 	}
 
-	rankings, err := c.GetRaceTimeRankings(season, quarter, carID, trackID)
+	rankings, err := c.GetRaceTimeRankings(season, quarter, carID, trackID, 50)
 	if err != nil {
 		return nil, err
 	}
@@ -46,10 +46,10 @@ func (c *Client) GetTimeRankings(season, quarter, carID, trackID int) ([]TimeRan
 	return rankings, nil
 }
 
-func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID int) ([]TimeRanking, error) {
+func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID, limit int) ([]TimeRanking, error) {
 	data, err := c.Get(
-		fmt.Sprintf("https://members.iracing.com/memberstats/member/GetWorldRecords?seasonyear=%d&seasonquarter=%d&carid=%d&trackid=%d&format=json&upperbound=30&sort=%s&order=asc",
-			season, quarter, carID, trackID, sort))
+		fmt.Sprintf("https://members.iracing.com/memberstats/member/GetWorldRecords?seasonyear=%d&seasonquarter=%d&carid=%d&trackid=%d&format=json&upperbound=%d&sort=%s&order=asc",
+			season, quarter, carID, trackID, limit, sort))
 	if err != nil {
 		return nil, err
 	}
@@ -70,14 +70,14 @@ func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID in
 
 		// ugly json struct needs ugly code
 		var ranking TimeRanking
-		ranking.DriverID = int(row["31"].(float64))    // custid // 123
-		ranking.DriverName = row["29"].(encodedString) // displayname "The Dude"
-		ranking.TimeTrialTime = row["37"].(string)     // timetrial // "1:28.514"
-		ranking.RaceTime = row["19"].(string)          // race // "1:27.992"
-		ranking.LicenseClass = row["3"].(string)       // licenseclass // "A 2.39"
-		ranking.IRating = int(row["4"].(float64))      // 4 // 1234
-		ranking.ClubID = int(row["7"].(float64))       // clubid // 7
-		ranking.ClubName = row["27"].(encodedString)   // clubname // "Benelux"
+		ranking.DriverID = int(row["31"].(float64))               // custid // 123
+		ranking.DriverName = encodedString(row["29"].(string))    // displayname "The Dude"
+		ranking.TimeTrialTime = encodedString(row["37"].(string)) // timetrial // "1:28.514"
+		ranking.RaceTime = encodedString(row["19"].(string))      // race // "1:27.992"
+		ranking.LicenseClass = encodedString(row["3"].(string))   // licenseclass // "A 2.39"
+		ranking.IRating = int(row["4"].(float64))                 // 4 // 1234
+		ranking.ClubID = int(row["7"].(float64))                  // clubid // 7
+		ranking.ClubName = encodedString(row["27"].(string))      // clubname // "Benelux"
 
 		rankings = append(rankings, ranking)
 	}

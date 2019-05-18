@@ -37,16 +37,6 @@ func (c *Collector) Database() database.Database {
 func (c *Collector) Run() {
 	seasonrx := regexp.MustCompile(`20[1-5][0-9] Season [1-4]`) // "2019 Season 2"
 
-	rankings, err := c.client.GetTimeRankings(2019, 2, 4, 212)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	for _, ranking := range rankings {
-		log.Infof("%v", ranking)
-	}
-
-	time.Sleep(111 * time.Hour)
-
 	for {
 		series, err := c.db.GetSeries()
 		if err != nil {
@@ -165,6 +155,45 @@ func (c *Collector) CollectTracks() {
 		}
 		if err := c.db.UpsertTrack(t); err != nil {
 			log.Errorf("could not store track [%s] in database: %v", track.Name, err)
+			continue
+		}
+	}
+}
+
+func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek, carID int) {
+	season, err := c.db.GetSeasonByID(raceweek.SeasonID)
+	if err != nil {
+		log.Errorf("could not get season [%d] from database: %v", raceweek.SeasonID, err)
+		return
+	}
+
+	rankings, err := c.client.GetTimeRankings(season.Year, season.Quarter, carID, raceweek.TrackID)
+	if err != nil {
+		log.Errorf("could not get time rankings via API: %v", err)
+		return
+	}
+	for _, ranking := range rankings {
+		log.Debugf("Time ranking: %s", ranking)
+
+		// update club & driver
+		driver, ok := c.UpsertDriverAndClub(ranking.DriverName.String(), ranking.ClubName.String(), ranking.DriverID, ranking.ClubID)
+		if !ok {
+			continue
+		}
+
+		// upsert time ranking
+		t := database.TimeRanking{
+			Driver:       driver,
+			RaceWeek:     raceweek,
+			CarClassID:   carID,
+			TimeTrial:    database.Laptime(ranking.TimeTrialTime.Laptime()),
+			Race:         database.Laptime(ranking.RaceTime.Laptime()),
+			LicenseClass: ranking.LicenseClass.String(),
+			IRating:      ranking.IRating,
+		}
+		if err := c.db.UpsertTimeRanking(t); err != nil {
+			log.Errorf("could not store time ranking of [%s] in database: %v", ranking.DriverName, err)
+			continue
 		}
 	}
 }
@@ -191,6 +220,10 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		return
 	}
 	trackID := results[0].TrackID
+	cars := make(map[int]int, 0)
+	for _, result := range results {
+		cars[result.CarClassID] = result.CarClassID
+	}
 
 	// insert raceweek
 	r := database.RaceWeek{
@@ -208,6 +241,11 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		return
 	}
 	log.Debugf("Raceweek: %v", raceweek)
+
+	// upsert time rankings for all car classes
+	for _, car := range cars {
+		c.CollectTimeRankings(raceweek, car)
+	}
 
 	// upsert raceweek results
 	for _, r := range results {
@@ -293,21 +331,8 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
 		//log.Debugf("Driver result: %s", row)
 
 		// update club & driver
-		club := database.Club{
-			ClubID: row.ClubID,
-			Name:   row.Club.String(),
-		}
-		if err := c.db.UpsertClub(club); err != nil {
-			log.Errorf("could not store club [%s] in database: %v", club.Name, err)
-			continue
-		}
-		driver := database.Driver{
-			DriverID: row.RacerID,
-			Name:     row.RacerName.String(),
-			Club:     club,
-		}
-		if err := c.db.UpsertDriver(driver); err != nil {
-			log.Errorf("could not store driver [%s] in database: %v", driver.Name, err)
+		driver, ok := c.UpsertDriverAndClub(row.RacerName.String(), row.Club.String(), row.RacerID, row.ClubID)
+		if !ok {
 			continue
 		}
 
@@ -350,4 +375,25 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
 		}
 		log.Debugf("Race result: %s", result)
 	}
+}
+
+func (c *Collector) UpsertDriverAndClub(driverName, clubName string, driverID, clubID int) (database.Driver, bool) {
+	club := database.Club{
+		ClubID: clubID,
+		Name:   clubName,
+	}
+	if err := c.db.UpsertClub(club); err != nil {
+		log.Errorf("could not store club [%s] in database: %v", club.Name, err)
+		return database.Driver{}, false
+	}
+	driver := database.Driver{
+		DriverID: driverID,
+		Name:     driverName,
+		Club:     club,
+	}
+	if err := c.db.UpsertDriver(driver); err != nil {
+		log.Errorf("could not store driver [%s] in database: %v", driver.Name, err)
+		return database.Driver{}, false
+	}
+	return driver, true
 }
