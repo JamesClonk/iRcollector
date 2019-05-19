@@ -24,6 +24,25 @@ type Track struct {
 	ConfigImage string `db:"config_image"`
 }
 
+func (t Track) String() string {
+	return fmt.Sprintf("[ Name: %s, Config: %s ]", t.Name, t.Config)
+}
+
+type Car struct {
+	CarID       int    `db:"pk_car_id"`
+	Name        string `db:"name"`
+	Description string `db:"description"`
+	Model       string `db:"model"`
+	Make        string `db:"make"`
+	PanelImage  string `db:"panel_image"`
+	LogoImage   string `db:"logo_image"`
+	CarImage    string `db:"car_image"`
+}
+
+func (c Car) String() string {
+	return fmt.Sprintf("[ CarID: %d, Name: %s ]", c.CarID, c.Name)
+}
+
 type Season struct {
 	SeriesID        int    `db:"fk_series_id"` // foreign-key to Series.SeriesID
 	SeasonID        int    `db:"pk_season_id"`
@@ -102,6 +121,8 @@ type RaceResult struct {
 	ChampPoints              int     `db:"champpoints"`
 	ClubPoints               int     `db:"clubpoints"`
 	CarNumber                int     `db:"car_number"`
+	CarID                    int     `db:"fk_car_id"`
+	CarClassID               int     `db:"car_class_id"`
 	StartingPosition         int     `db:"starting_position"`
 	Position                 int     `db:"position"`
 	FinishingPosition        int     `db:"finishing_position"`
@@ -126,7 +147,7 @@ func (rr RaceResult) String() string {
 type TimeRanking struct {
 	Driver       Driver
 	RaceWeek     RaceWeek
-	CarClassID   int     `db:"car_class_id"`
+	Car          Car
 	TimeTrial    Laptime `db:"time_trial"`
 	Race         Laptime `db:"race"`
 	LicenseClass string  `db:"license_class"`

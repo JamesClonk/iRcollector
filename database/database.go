@@ -11,6 +11,9 @@ type Database interface {
 	GetSeasonByID(int) (Season, error)
 	UpsertSeason(Season) error
 	UpsertTrack(Track) error
+	UpsertCar(Car) error
+	GetCarByID(int) (Car, error)
+	GetCarsByRaceWeekID(int) ([]Car, error)
 	UpsertTimeRanking(TimeRanking) error
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	GetRaceWeekByID(int) (RaceWeek, error)
@@ -187,6 +190,86 @@ func (db *database) UpsertTrack(track Track) error {
 	return tx.Commit()
 }
 
+func (db *database) UpsertCar(car Car) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Preparex(`
+		insert into cars
+			(pk_car_id, name, description, model, make, panel_image, logo_image, car_image)
+		values ($1, $2, $3, $4, $5, $6, $7, $8)
+		on conflict (pk_car_id) do update
+		set name = excluded.name,
+			description = excluded.description,
+			model = excluded.model,
+			make = excluded.make,
+			panel_image = excluded.panel_image,
+			logo_image = excluded.logo_image,
+			car_image = excluded.car_image`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(
+		car.CarID, car.Name, car.Description, car.Model, car.Make,
+		car.PanelImage, car.LogoImage, car.CarImage); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (db *database) GetCarByID(id int) (Car, error) {
+	car := Car{}
+	if err := db.Get(&car, `
+		select
+			c.pk_car_id,
+			c.name,
+			c.description,
+			c.model,
+			c.make,
+			c.panel_image,
+			c.logo_image,
+			c.car_image
+		from cars c
+		where c.pk_car_id = $1`, id); err != nil {
+		return car, err
+	}
+	return car, nil
+}
+
+func (db *database) GetCarsByRaceWeekID(raceweekID int) ([]Car, error) {
+	cars := make([]Car, 0)
+	if err := db.Select(&cars, `
+		select
+			c.pk_car_id,
+			c.name,
+			c.description,
+			c.model,
+			c.make,
+			c.panel_image,
+			c.logo_image,
+			c.car_image
+		from cars c
+		where c.pk_car_id in (
+			select
+				distinct c.pk_car_id
+			from cars c
+				join race_results rr on (rr.fk_car_id = c.pk_car_id)
+				join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
+			where rwr.fk_raceweek_id = $1
+		)
+		order by c.name asc, c.pk_car_id asc
+		`, raceweekID); err != nil {
+		return nil, err
+	}
+	return cars, nil
+}
+
 func (db *database) UpsertTimeRanking(r TimeRanking) error {
 	tx, err := db.Beginx()
 	if err != nil {
@@ -195,7 +278,7 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	stmt, err := tx.Preparex(`
 		insert into time_rankings
-			(fk_driver_id, fk_raceweek_id, car_class_id, race, time_trial, license_class, irating)
+			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial, license_class, irating)
 		values ($1, $2, $3, $4, $5, $6, $7)
 		on conflict on constraint uniq_time_ranking do update
 		set race = excluded.race,
@@ -209,7 +292,7 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(
-		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.CarClassID,
+		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.Car.CarID,
 		r.Race, r.TimeTrial, r.LicenseClass, r.IRating,
 	); err != nil {
 		tx.Rollback()
@@ -444,11 +527,12 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 			old_irating, new_irating, old_license_level, new_license_level,
 			old_safety_rating, new_safety_rating, old_cpi, new_cpi,
 			license_group, aggregate_champpoints, champpoints, clubpoints,
-			car_number, starting_position, position, finishing_position, finishing_position_in_class,
+			car_number, fk_car_id, car_class_id,
+			starting_position, position, finishing_position, finishing_position_in_class,
 			division, interval, class_interval, avg_laptime,
 			laps_completed, laps_lead, incidents, reason_out, session_starttime)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-				$15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+				$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)`)
 	if err != nil {
 		return RaceResult{}, err
 	}
@@ -459,7 +543,8 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 		result.IRatingBefore, result.IRatingAfter, result.LicenseLevelBefore, result.LicenseLevelAfter,
 		result.SafetyRatingBefore, result.SafetyRatingAfter, result.CPIBefore, result.CPIAfter,
 		result.LicenseGroup, result.AggregateChampPoints, result.ChampPoints, result.ClubPoints,
-		result.CarNumber, result.StartingPosition, result.Position, result.FinishingPosition, result.FinishingPositionInClass,
+		result.CarNumber, result.CarID, result.CarClassID,
+		result.StartingPosition, result.Position, result.FinishingPosition, result.FinishingPositionInClass,
 		result.Division, result.Interval, result.ClassInterval, result.AvgLaptime,
 		result.LapsCompleted, result.LapsLead, result.Incidents, result.ReasonOut, result.SessionStartTime); err != nil {
 		return RaceResult{}, err
@@ -489,6 +574,8 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 			r.champpoints,
 			r.clubpoints,
 			r.car_number,
+			r.fk_car_id,
+			r.car_class_id,
 			r.starting_position,
 			r.position,
 			r.finishing_position,
@@ -511,7 +598,8 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 		&r.IRatingBefore, &r.IRatingAfter, &r.LicenseLevelBefore, &r.LicenseLevelAfter,
 		&r.SafetyRatingBefore, &r.SafetyRatingAfter, &r.CPIBefore, &r.CPIAfter,
 		&r.LicenseGroup, &r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
-		&r.CarNumber, &r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
+		&r.CarNumber, &r.CarID, &r.CarClassID,
+		&r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
 		&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
 		&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
 	); err != nil {
@@ -542,6 +630,8 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 			r.champpoints,
 			r.clubpoints,
 			r.car_number,
+			r.fk_car_id,
+			r.car_class_id,
 			r.starting_position,
 			r.position,
 			r.finishing_position,
@@ -572,7 +662,8 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 			&r.IRatingBefore, &r.IRatingAfter, &r.LicenseLevelBefore, &r.LicenseLevelAfter,
 			&r.SafetyRatingBefore, &r.SafetyRatingAfter, &r.CPIBefore, &r.CPIAfter,
 			&r.LicenseGroup, &r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
-			&r.CarNumber, &r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
+			&r.CarNumber, &r.CarID, &r.CarClassID,
+			&r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
 			&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
 			&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
 		); err != nil {

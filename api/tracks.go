@@ -16,7 +16,7 @@ func (c *Client) GetTracks() ([]Track, error) {
 
 	// use ugly regexp to jsonify javascript code
 	trackRx := regexp.MustCompile(`trackobj=([^;]*);`)
-	elementRx := regexp.MustCompile(`[\s]+([[:word:]]+)[\s]+(:.+\n)`)
+	elementRx := regexp.MustCompile(`[\s]+([[:word:]]+)[\s]*(:.+\n)`)
 	removeRx := regexp.MustCompile(`"[[:word:]]+":[\s]*[A-Za-z(]+.*\n`)
 	removeRx2 := regexp.MustCompile(`,[\s]+}`)
 

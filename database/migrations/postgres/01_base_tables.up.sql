@@ -24,6 +24,18 @@ CREATE TABLE IF NOT EXISTS tracks (
     CONSTRAINT uniq_track UNIQUE (name, config)
 );
 
+-- cars
+CREATE TABLE IF NOT EXISTS cars (
+    pk_car_id       INTEGER PRIMARY KEY,
+    name            TEXT NOT NULL,
+    description     TEXT NOT NULL,
+    model           TEXT NOT NULL,
+    make            TEXT NOT NULL,
+    panel_image     TEXT NOT NULL,
+    logo_image      TEXT NOT NULL,
+    car_image       TEXT NOT NULL
+);
+
 -- seasons
 CREATE TABLE IF NOT EXISTS seasons (
     pk_season_id    INTEGER PRIMARY KEY,

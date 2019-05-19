@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS race_results (
     champpoints                     INTEGER NOT NULL,
     clubpoints                      INTEGER NOT NULL,
     car_number                      INTEGER NOT NULL,
+    fk_car_id                       INTEGER NOT NULL,
+    car_class_id                    INTEGER NOT NULL,
     starting_position               INTEGER NOT NULL,
     position                        INTEGER NOT NULL,
     finishing_position              INTEGER NOT NULL,
@@ -61,5 +63,6 @@ CREATE TABLE IF NOT EXISTS race_results (
     session_starttime               BIGINT NOT NULL,
     FOREIGN KEY (fk_subsession_id) REFERENCES raceweek_results (subsession_id) ON DELETE CASCADE,
     FOREIGN KEY (fk_driver_id) REFERENCES drivers (pk_driver_id) ON DELETE CASCADE,
+    FOREIGN KEY (fk_car_id) REFERENCES cars (pk_car_id) ON DELETE CASCADE,
     CONSTRAINT uniq_race_result UNIQUE (fk_subsession_id, fk_driver_id)
 );

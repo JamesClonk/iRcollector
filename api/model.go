@@ -59,8 +59,10 @@ type RaceResultRow struct {
 	ChampPoints              int           `json:"champpoints"`
 	ClubPoints               int           `json:"clubpoints"`
 	ClubID                   int           `json:"clubid"`
-	Club                     encodedString `json:"clubname"` // "Finland"
-	CarNumber                string        `json:"carnum"`   // "8"
+	Club                     encodedString `json:"clubname"`   // "Finland"
+	CarNumber                string        `json:"carnum"`     // "8"
+	CarID                    int           `json:"carid"`      // 105
+	CarClassID               int           `json:"carclassid"` // 871
 	StartingPosition         int           `json:"startpos"`
 	Position                 int           `json:"pos"`
 	FinishingPosition        int           `json:"finishpos"`
@@ -209,11 +211,53 @@ func (t Track) String() string {
 	return fmt.Sprintf("[ Name: %s, Config: %s ]", t.Name, t.Config)
 }
 
+/*
+	carobj={
+		pkgID:179,
+		sku:10389,
+		owned:(owned_idx!=-1)?1:0,
+		download:isdownload,
+		update:(owned_idx!=-1)?OwnedContentListing[owned_idx].update:0,
+		carID:64,
+		name:"Aston Martin DBR9 GT1",
+		desc:"Aston Martin DBR9 GT1",
+		model: "GT1",
+		make:"Aston Martin",
+		price:"11.95",
+		hp:"600.0",
+		weight:"2579.0",
+		w2pRatio:"4.2",
+		freeWithSubscription:"false",
+		discountGroupNames:"[road car]",
+		collapsedimg:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/panel_list.jpg",
+		collapsedimg_gray:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/panel_list.jpg",
+		expanded_car_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/profile.jpg",
+		expanded_mfr_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/logo.jpg",
+		header_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/title_list.gif"
+	};
+*/
+type Car struct {
+	CarID       int    `json:"carID"`
+	Name        string `json:"name"`
+	Description string `json:"desc"`
+	Model       string `json:"model"`
+	Make        string `json:"make"`
+	PanelImage  string `json:"collapsedimg"`
+	LogoImage   string `json:"expanded_mfr_img"`
+	CarImage    string `json:"expanded_car_img"`
+}
+
+func (c Car) String() string {
+	return fmt.Sprintf("[ CarID: %d, Name: %s ]", c.CarID, c.Name)
+}
+
 type TimeRanking struct {
 	DriverID      int           `json:"custid"`
 	DriverName    encodedString `json:"displayname"`
 	ClubID        int           `json:"clubid"`
 	ClubName      encodedString `json:"clubname"`
+	CarID         int           `json:"carid"`
+	TrackID       int           `json:"trackid"`
 	TimeTrialTime encodedString `json:"timetrial"`
 	RaceTime      encodedString `json:"race"`
 	LicenseClass  encodedString `json:"licenseclass"`
