@@ -180,16 +180,34 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 {{ range . }}  { "fk_raceweek_id": {{ .RaceWeekID }}, "startime": "{{ .StartTime }}", "subsession_id": {{ .SubsessionID }}, "official": {{ .Official }}, "size": {{ .SizeOfField}}, "sof": {{ .StrengthOfField}} },
 {{ end }}]}`
 		result := template.Must(template.New("result").Parse(resultTmpl))
-		var buf bytes.Buffer
-		if err := result.Execute(&buf, results); err != nil {
+		var resultsBuf bytes.Buffer
+		if err := result.Execute(&resultsBuf, results); err != nil {
 			log.Errorf("could not parse result template: %v", err)
+			failure(rw, req, err)
+			return
+		}
+
+		rankings, err := c.Database().GetTimeRankingsBySeasonIDAndWeek(seasonID, week)
+		if err != nil {
+			failure(rw, req, err)
+			return
+		}
+
+		rankingTmpl := `,{[
+{{ range . }}  { "driver": "{{ .Driver.Name }}", "car": "{{ .Car.Name }}", "race": "{{ .Race }}", "time_trial": "{{ .TimeTrial }}", "irating": {{ .IRating }}, "license_class": "{{ .LicenseClass}}" },
+{{ end }}]}`
+		ranking := template.Must(template.New("ranking").Parse(rankingTmpl))
+		var rankingsBuf bytes.Buffer
+		if err := ranking.Execute(&rankingsBuf, rankings); err != nil {
+			log.Errorf("could not parse ranking template: %v", err)
 			failure(rw, req, err)
 			return
 		}
 
 		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
-		rw.Write(buf.Bytes())
+		rw.Write(resultsBuf.Bytes())
+		rw.Write(rankingsBuf.Bytes())
 	}
 }
 

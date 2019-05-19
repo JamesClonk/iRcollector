@@ -74,5 +74,8 @@ func decode(value string) string {
 type laptime int
 
 func (l laptime) String() string {
+	if l == 0 {
+		return ""
+	}
 	return fmt.Sprintf("%s", time.Duration(l*100)*time.Microsecond)
 }

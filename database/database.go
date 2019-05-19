@@ -1,6 +1,8 @@
 package database
 
 import (
+	"database/sql"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -15,6 +17,7 @@ type Database interface {
 	GetCarByID(int) (Car, error)
 	GetCarsByRaceWeekID(int) ([]Car, error)
 	UpsertTimeRanking(TimeRanking) error
+	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
@@ -291,14 +294,76 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 	}
 	defer stmt.Close()
 
+	null := func(i Laptime) sql.NullInt64 {
+		if i < 1 {
+			return sql.NullInt64{}
+		}
+		return sql.NullInt64{
+			Int64: int64(i),
+			Valid: true,
+		}
+	}
+
 	if _, err = stmt.Exec(
 		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.Car.CarID,
-		r.Race, r.TimeTrial, r.LicenseClass, r.IRating,
+		null(r.Race), null(r.TimeTrial), r.LicenseClass, r.IRating,
 	); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
+}
+
+func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]TimeRanking, error) {
+	rankings := make([]TimeRanking, 0)
+	rows, err := db.Queryx(`
+		select
+			d.pk_driver_id,
+			d.name,
+			cl.pk_club_id,
+			cl.name,
+			rw.pk_raceweek_id,
+			rw.raceweek,
+			rw.fk_season_id,
+			rw.fk_track_id,
+			c.pk_car_id,
+			c.name,
+			c.description,
+			c.model,
+			c.make,
+			c.panel_image,
+			c.logo_image,
+			c.car_image,
+			coalesce(tr.time_trial, 0),
+			coalesce(tr.race, 0),
+			tr.license_class,
+			tr.irating
+		from time_rankings tr
+			join cars c on (tr.fk_car_id = c.pk_car_id)
+			join drivers d on (tr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join raceweeks rw on (rw.pk_raceweek_id = tr.fk_raceweek_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		order by d.name asc, tr.irating desc`, seasonID, week)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		t := TimeRanking{}
+		if err := rows.Scan(
+			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
+			&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
+			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
+			&t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
+		); err != nil {
+			return nil, err
+		}
+		rankings = append(rankings, t)
+	}
+	return rankings, nil
 }
 
 func (db *database) InsertRaceWeek(raceweek RaceWeek) (RaceWeek, error) {
