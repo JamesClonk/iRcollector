@@ -33,6 +33,7 @@ type Database interface {
 	GetRaceResultsBySubsessionID(int) ([]RaceResult, error)
 	GetClubByID(int) (Club, error)
 	GetDriverByID(int) (Driver, error)
+	GetTrackByID(int) (Track, error)
 }
 
 type database struct {
@@ -768,4 +769,24 @@ func (db *database) GetDriverByID(id int) (Driver, error) {
 		return d, err
 	}
 	return d, nil
+}
+
+func (db *database) GetTrackByID(id int) (Track, error) {
+	track := Track{}
+	if err := db.Get(&track, `
+		select
+			t.pk_track_id,
+			t.name,
+			t.pk_track_id,
+			t.category,
+			t.banner_image,
+			t.panel_image,
+			t.logo_image,
+			t.map_image,
+			t.config_image
+		from tracks t
+		where t.pk_track_id = $1`, id); err != nil {
+		return track, err
+	}
+	return track, nil
 }

@@ -15,7 +15,7 @@ type Series struct {
 type Track struct {
 	TrackID     int    `db:"pk_track_id"`
 	Name        string `db:"name"`
-	Config      string `db:"pk_track_id"`
+	Config      string `db:"config"`
 	Category    string `db:"category"`
 	BannerImage string `db:"banner_image"`
 	PanelImage  string `db:"panel_image"`
