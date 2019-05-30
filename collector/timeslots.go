@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/JamesClonk/iRcollector/api"
@@ -24,16 +25,35 @@ func (c *Collector) CollectTimeslots(seasonID int, results []api.RaceWeekResult)
 			return results[i].StartTime.Before(results[j].StartTime)
 		})
 
-		shortestInterval := 24
+		// collect shortest interval > 0
+		hourlyInterval := 24
+		startingHour := 24
 		for idx := range results {
 			if len(results) > idx+1 {
-				interval := int(results[1].StartTime.Sub(results[0].StartTime).Hours())
-				if interval < shortestInterval && interval > 0 {
-					shortestInterval = interval
+				interval := int(results[idx+1].StartTime.Sub(results[idx].StartTime).Hours())
+				if interval < hourlyInterval && interval > 0 {
+					hourlyInterval = interval
+				}
+				if results[idx].StartTime.Hour() < startingHour {
+					startingHour = results[idx].StartTime.Hour()
 				}
 			}
 		}
-		log.Debugf("Timeslots: %v", shortestInterval)
-		log.Fatalln("byebye")
+
+		// collect minute mark
+		minute := results[0].StartTime.Minute()
+		if minute != results[1].StartTime.Minute() {
+			log.Errorf("something fishy is going on, starttimes are not on a repeating timeslot: [%v] vs. [%s]", results[0].StartTime, results[1].StartTime)
+			return
+		}
+
+		log.Debugf("Timeslot found: every %d hours at %02d minutes, starting at %02d AM", hourlyInterval, minute, startingHour)
+		log.Debugf("Crontab format: %d %d-23/%d * * *", minute, startingHour, hourlyInterval)
+
+		// update season with timeslot information
+		season.Timeslots = fmt.Sprintf("%d %d-23/%d * * *", minute, startingHour, hourlyInterval)
+		if err := c.db.UpsertSeason(season); err != nil {
+			log.Errorf("could not update season [%s] in database: %v", season.SeasonName, err)
+		}
 	}
 }
