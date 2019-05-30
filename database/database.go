@@ -74,7 +74,8 @@ func (db *database) GetSeasons() ([]Season, error) {
 			s.banner_image,
 			s.panel_image,
 			s.logo_image,
-			s.timeslots
+			s.timeslots,
+			s.startdate
 		from seasons s
 		order by s.name asc, s.year desc, s.quarter desc`); err != nil {
 		return nil, err
@@ -96,7 +97,8 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 			s.banner_image,
 			s.panel_image,
 			s.logo_image,
-			s.timeslots
+			s.timeslots,
+			s.startdate
 		from seasons s
 		where s.fk_series_id = $1
 		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
@@ -119,7 +121,8 @@ func (db *database) GetSeasonByID(seasonID int) (Season, error) {
 			s.banner_image,
 			s.panel_image,
 			s.logo_image,
-			s.timeslots
+			s.timeslots,
+			s.startdate
 		from seasons s
 		where s.pk_season_id = $1`, seasonID); err != nil {
 		return season, err
@@ -147,7 +150,8 @@ func (db *database) UpsertSeason(season Season) error {
 			banner_image = excluded.banner_image,
 			panel_image = excluded.panel_image,
 			logo_image = excluded.logo_image,
-			timeslots = excluded.timeslots`)
+			timeslots = excluded.timeslots,
+			startdate = excluded.startdate`)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -157,7 +161,7 @@ func (db *database) UpsertSeason(season Season) error {
 	if _, err = stmt.Exec(
 		season.SeasonID, season.SeriesID, season.Year, season.Quarter,
 		season.Category, season.SeasonName, season.SeasonNameShort,
-		season.BannerImage, season.PanelImage, season.LogoImage, season.Timeslots); err != nil {
+		season.BannerImage, season.PanelImage, season.LogoImage, season.Timeslots, season.StartDate); err != nil {
 		tx.Rollback()
 		return err
 	}

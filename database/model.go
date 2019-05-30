@@ -44,17 +44,18 @@ func (c Car) String() string {
 }
 
 type Season struct {
-	SeriesID        int    `db:"fk_series_id"` // foreign-key to Series.SeriesID
-	SeasonID        int    `db:"pk_season_id"`
-	Year            int    `db:"year"`
-	Quarter         int    `db:"quarter"`
-	Category        string `db:"category"`
-	SeasonName      string `db:"name"`
-	SeasonNameShort string `db:"short_name"`
-	BannerImage     string `db:"banner_image"`
-	PanelImage      string `db:"panel_image"`
-	LogoImage       string `db:"logo_image"`
-	Timeslots       string `db:"timeslots"`
+	SeriesID        int       `db:"fk_series_id"` // foreign-key to Series.SeriesID
+	SeasonID        int       `db:"pk_season_id"`
+	Year            int       `db:"year"`
+	Quarter         int       `db:"quarter"`
+	Category        string    `db:"category"`
+	SeasonName      string    `db:"name"`
+	SeasonNameShort string    `db:"short_name"`
+	BannerImage     string    `db:"banner_image"`
+	PanelImage      string    `db:"panel_image"`
+	LogoImage       string    `db:"logo_image"`
+	Timeslots       string    `db:"timeslots"`
+	StartDate       time.Time `db:"startdate"`
 }
 
 type RaceWeek struct {

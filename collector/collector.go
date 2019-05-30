@@ -83,7 +83,11 @@ func (c *Collector) Run() {
 						year = 2018 + yearsSince
 						quarter = (seasonsSince % 4) + 1
 					}
-					log.Infof("Current season: %dS%d", year, quarter)
+
+					startDate := database.WeekStart(time.Now().AddDate(0, 0, -7*season.RaceWeek))
+					log.Infof("Current season: %dS%d, started: %s", year, quarter, startDate)
+
+					log.Fatalf("blub")
 
 					// upsert current season
 					s := database.Season{
@@ -97,6 +101,7 @@ func (c *Collector) Run() {
 						BannerImage:     season.BannerImage,
 						PanelImage:      season.PanelImage,
 						LogoImage:       season.LogoImage,
+						StartDate:       startDate,
 					}
 					if err := c.db.UpsertSeason(s); err != nil {
 						log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
