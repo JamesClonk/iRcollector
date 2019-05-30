@@ -54,6 +54,7 @@ type Season struct {
 	BannerImage     string `db:"banner_image"`
 	PanelImage      string `db:"panel_image"`
 	LogoImage       string `db:"logo_image"`
+	Timeslots       string `db:"timeslots"`
 }
 
 type RaceWeek struct {

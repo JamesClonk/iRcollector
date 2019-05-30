@@ -73,7 +73,8 @@ func (db *database) GetSeasons() ([]Season, error) {
 			s.short_name,
 			s.banner_image,
 			s.panel_image,
-			s.logo_image
+			s.logo_image,
+			s.timeslots
 		from seasons s
 		order by s.name asc, s.year desc, s.quarter desc`); err != nil {
 		return nil, err
@@ -94,7 +95,8 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 			s.short_name,
 			s.banner_image,
 			s.panel_image,
-			s.logo_image
+			s.logo_image,
+			s.timeslots
 		from seasons s
 		where s.fk_series_id = $1
 		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
@@ -116,7 +118,8 @@ func (db *database) GetSeasonByID(seasonID int) (Season, error) {
 			s.short_name,
 			s.banner_image,
 			s.panel_image,
-			s.logo_image
+			s.logo_image,
+			s.timeslots
 		from seasons s
 		where s.pk_season_id = $1`, seasonID); err != nil {
 		return season, err
@@ -132,8 +135,8 @@ func (db *database) UpsertSeason(season Season) error {
 
 	stmt, err := tx.Preparex(`
 		insert into seasons
-			(pk_season_id, fk_series_id, year, quarter, category, name, short_name, banner_image, panel_image, logo_image)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			(pk_season_id, fk_series_id, year, quarter, category, name, short_name, banner_image, panel_image, logo_image, timeslots)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		on conflict (pk_season_id) do update
 		set fk_series_id = excluded.fk_series_id,
 			year = excluded.year,
@@ -143,7 +146,8 @@ func (db *database) UpsertSeason(season Season) error {
 			short_name = excluded.short_name,
 			banner_image = excluded.banner_image,
 			panel_image = excluded.panel_image,
-			logo_image = excluded.logo_image`)
+			logo_image = excluded.logo_image,
+			timeslots = excluded.timeslots`)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -153,7 +157,7 @@ func (db *database) UpsertSeason(season Season) error {
 	if _, err = stmt.Exec(
 		season.SeasonID, season.SeriesID, season.Year, season.Quarter,
 		season.Category, season.SeasonName, season.SeasonNameShort,
-		season.BannerImage, season.PanelImage, season.LogoImage); err != nil {
+		season.BannerImage, season.PanelImage, season.LogoImage, season.Timeslots); err != nil {
 		tx.Rollback()
 		return err
 	}
