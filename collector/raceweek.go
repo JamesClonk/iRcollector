@@ -40,7 +40,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 	log.Debugf("Raceweek: %v", raceweek)
 
 	// figure out raceweek timeslots / schedule
-	c.CollectTimeslots(results)
+	c.CollectTimeslots(seasonID, results)
 
 	// upsert raceweek results
 	for _, r := range results {
