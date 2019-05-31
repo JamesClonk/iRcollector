@@ -60,11 +60,12 @@ func (c *Collector) Run() {
 				if namerx.MatchString(season.SeriesName) { // does seriesName match seriesRegex from db?
 					log.Infof("Season: %s", season)
 
+					// does it already exists in db?
 					s, err := c.db.GetSeasonByID(season.SeasonID)
 					if err != nil {
 						log.Errorf("could not get season [%d] from database: %v", season.SeasonID, err)
 					}
-					if err != nil || len(s.SeasonName) == 0 || len(s.Timeslots) == 0 || len(s.StartDate) == 0 {
+					if err != nil || len(s.SeasonName) == 0 || len(s.Timeslots) == 0 || s.StartDate.Before(time.Now().AddDate(-1, -1, -1)) {
 						// figure out which season we are in
 						var year, quarter int
 						if seasonrx.MatchString(season.SeasonNameShort) {
@@ -93,19 +94,18 @@ func (c *Collector) Run() {
 						log.Infof("Current season: %dS%d, started: %s", year, quarter, startDate)
 
 						// upsert current season
-						s := database.Season{
-							SeriesID:        series.SeriesID,
-							SeasonID:        season.SeasonID,
-							Year:            year,
-							Quarter:         quarter,
-							Category:        season.Category,
-							SeasonName:      season.SeasonName,
-							SeasonNameShort: season.SeasonNameShort,
-							BannerImage:     season.BannerImage,
-							PanelImage:      season.PanelImage,
-							LogoImage:       season.LogoImage,
-							StartDate:       startDate,
-						}
+						s.SeriesID = series.SeriesID
+						s.SeasonID = season.SeasonID
+						s.Year = year
+						s.Quarter = quarter
+						s.Category = season.Category
+						s.SeasonName = season.SeasonName
+						s.SeasonNameShort = season.SeasonNameShort
+						s.BannerImage = season.BannerImage
+						s.PanelImage = season.PanelImage
+						s.LogoImage = season.LogoImage
+						s.Timeslots = s.Timeslots
+						s.StartDate = startDate
 						if err := c.db.UpsertSeason(s); err != nil {
 							log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
 						}
@@ -124,9 +124,9 @@ func (c *Collector) Run() {
 							log.Fatalf("%v", err)
 						}
 						for _, s := range ss {
-							yearToFind := year
-							quarterToFind := quarter - 1
-							if quarter == 1 {
+							yearToFind := s.Year
+							quarterToFind := s.Quarter - 1
+							if s.Quarter == 1 {
 								yearToFind = yearToFind - 1
 								quarterToFind = 4
 							}
