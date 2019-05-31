@@ -60,51 +60,55 @@ func (c *Collector) Run() {
 				if namerx.MatchString(season.SeriesName) { // does seriesName match seriesRegex from db?
 					log.Infof("Season: %s", season)
 
-					// figure out which season we are in
-					var year, quarter int
-					if seasonrx.MatchString(season.SeasonNameShort) {
-						var err error
-						year, err = strconv.Atoi(season.SeasonNameShort[0:4])
-						if err != nil {
-							log.Errorf("could not convert SeasonNameShort [%s] to year: %v", season.SeasonNameShort, err)
+					s, err := c.db.GetSeasonByID(season.SeasonID)
+					if err != nil {
+						log.Errorf("could not get season [%d] from database: %v", season.SeasonID, err)
+					}
+					if err != nil || len(s.SeasonName) == 0 || len(s.Timeslots) == 0 || len(s.StartDate) == 0 {
+						// figure out which season we are in
+						var year, quarter int
+						if seasonrx.MatchString(season.SeasonNameShort) {
+							var err error
+							year, err = strconv.Atoi(season.SeasonNameShort[0:4])
+							if err != nil {
+								log.Errorf("could not convert SeasonNameShort [%s] to year: %v", season.SeasonNameShort, err)
+							}
+							quarter, err = strconv.Atoi(season.SeasonNameShort[12:13])
+							if err != nil {
+								log.Errorf("could not convert SeasonNameShort [%s] to quarter: %v", season.SeasonNameShort, err)
+							}
 						}
-						quarter, err = strconv.Atoi(season.SeasonNameShort[12:13])
-						if err != nil {
-							log.Errorf("could not convert SeasonNameShort [%s] to quarter: %v", season.SeasonNameShort, err)
+						// if we couldn't figure out the season from SeasonNameShort, then we'll try to calculate it based on 2018S1 which started on 2017-12-12
+						if year < 2010 || quarter < 1 {
+							iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
+							daysSince := int(time.Now().Sub(iracingEpoch).Hours() / 24)
+							weeksSince := daysSince / 7
+							seasonsSince := weeksSince / 13
+							yearsSince := seasonsSince / 4
+							year = 2018 + yearsSince
+							quarter = (seasonsSince % 4) + 1
 						}
-					}
-					// if we couldn't figure out the season from SeasonNameShort, then we'll try to calculate it based on 2018S1 which started on 2017-12-12
-					if year < 2010 || quarter < 1 {
-						iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
-						daysSince := int(time.Now().Sub(iracingEpoch).Hours() / 24)
-						weeksSince := daysSince / 7
-						seasonsSince := weeksSince / 13
-						yearsSince := seasonsSince / 4
-						year = 2018 + yearsSince
-						quarter = (seasonsSince % 4) + 1
-					}
 
-					startDate := database.WeekStart(time.Now().AddDate(0, 0, -7*season.RaceWeek))
-					log.Infof("Current season: %dS%d, started: %s", year, quarter, startDate)
+						startDate := database.WeekStart(time.Now().UTC().AddDate(0, 0, -7*season.RaceWeek))
+						log.Infof("Current season: %dS%d, started: %s", year, quarter, startDate)
 
-					log.Fatalf("blub")
-
-					// upsert current season
-					s := database.Season{
-						SeriesID:        series.SeriesID,
-						SeasonID:        season.SeasonID,
-						Year:            year,
-						Quarter:         quarter,
-						Category:        season.Category,
-						SeasonName:      season.SeasonName,
-						SeasonNameShort: season.SeasonNameShort,
-						BannerImage:     season.BannerImage,
-						PanelImage:      season.PanelImage,
-						LogoImage:       season.LogoImage,
-						StartDate:       startDate,
-					}
-					if err := c.db.UpsertSeason(s); err != nil {
-						log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
+						// upsert current season
+						s := database.Season{
+							SeriesID:        series.SeriesID,
+							SeasonID:        season.SeasonID,
+							Year:            year,
+							Quarter:         quarter,
+							Category:        season.Category,
+							SeasonName:      season.SeasonName,
+							SeasonNameShort: season.SeasonNameShort,
+							BannerImage:     season.BannerImage,
+							PanelImage:      season.PanelImage,
+							LogoImage:       season.LogoImage,
+							StartDate:       startDate,
+						}
+						if err := c.db.UpsertSeason(s); err != nil {
+							log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
+						}
 					}
 
 					// insert current raceweek

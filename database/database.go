@@ -138,8 +138,8 @@ func (db *database) UpsertSeason(season Season) error {
 
 	stmt, err := tx.Preparex(`
 		insert into seasons
-			(pk_season_id, fk_series_id, year, quarter, category, name, short_name, banner_image, panel_image, logo_image, timeslots)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			(pk_season_id, fk_series_id, year, quarter, category, name, short_name, banner_image, panel_image, logo_image, timeslots, startdate)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		on conflict (pk_season_id) do update
 		set fk_series_id = excluded.fk_series_id,
 			year = excluded.year,
