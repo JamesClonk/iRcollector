@@ -145,7 +145,7 @@ func (c *Collector) Run() {
 				}
 			}
 			if !found {
-				log.Errorf("no seasons found for series [%s], couldn't match anything to regex []!", series.SeriesName, series.SeriesRegex)
+				log.Errorf("no seasons found for series [%s], couldn't match anything to regex [%s]!", series.SeriesName, series.SeriesRegex)
 			}
 		}
 
