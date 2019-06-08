@@ -9,6 +9,8 @@ import (
 )
 
 func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
+	log.Infof("collecting race stats for subsession [%d]...", rws.SubsessionID)
+
 	// collect race result
 	result, err := c.client.GetRaceResult(rws.SubsessionID)
 	if err != nil {

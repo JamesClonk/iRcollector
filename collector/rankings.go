@@ -6,6 +6,8 @@ import (
 )
 
 func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
+	log.Infof("collecting time rankings for raceweek [%d] ...", raceweek.RaceWeek)
+
 	season, err := c.db.GetSeasonByID(raceweek.SeasonID)
 	if err != nil {
 		log.Errorf("could not get season [%d] from database: %v", raceweek.SeasonID, err)

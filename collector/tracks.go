@@ -6,6 +6,8 @@ import (
 )
 
 func (c *Collector) CollectTracks() {
+	log.Infof("collecting tracks ...")
+
 	tracks, err := c.client.GetTracks()
 	if err != nil {
 		log.Fatalf("%v", err)

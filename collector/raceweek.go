@@ -6,6 +6,8 @@ import (
 )
 
 func (c *Collector) CollectRaceWeek(seasonID, week int) {
+	log.Infof("collecting race week [%d] for season [%d] ...", week, seasonID)
+
 	if week < 0 || week > 11 {
 		log.Errorf("week [%d] is invalid", week)
 		return

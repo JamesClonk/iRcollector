@@ -6,6 +6,8 @@ import (
 )
 
 func (c *Collector) CollectCars() {
+	log.Infof("collecting cars ...")
+
 	cars, err := c.client.GetCars()
 	if err != nil {
 		log.Fatalf("%v", err)

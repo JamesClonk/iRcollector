@@ -54,11 +54,17 @@ func (c *Collector) Run() {
 		if err != nil {
 			log.Fatalf("%v", err)
 		}
+
+		if len(seasons) == 0 {
+			log.Errorf("no seasons found, couldn't get anything from iRacing!")
+		}
 		for _, series := range series {
+			var found bool
 			namerx := regexp.MustCompile(series.SeriesRegex)
 			for _, season := range seasons {
 				if namerx.MatchString(season.SeriesName) { // does seriesName match seriesRegex from db?
 					log.Infof("Season: %s", season)
+					found = true
 
 					// does it already exists in db?
 					s, err := c.db.GetSeasonByID(season.SeasonID)
@@ -138,6 +144,9 @@ func (c *Collector) Run() {
 					}
 				}
 			}
+			if !found {
+				log.Errorf("no seasons found for series [%s], couldn't match anything to regex []!", series.SeriesName, series.SeriesRegex)
+			}
 		}
 
 		time.Sleep(99 * time.Minute)
@@ -145,6 +154,8 @@ func (c *Collector) Run() {
 }
 
 func (c *Collector) CollectSeason(seasonID int) {
+	log.Infof("collecting whole season [%d], all 12 weeks ...", seasonID)
+
 	for w := 0; w < 12; w++ {
 		c.CollectRaceWeek(seasonID, w)
 	}

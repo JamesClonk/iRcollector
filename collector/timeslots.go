@@ -9,6 +9,8 @@ import (
 )
 
 func (c *Collector) CollectTimeslots(seasonID int, results []api.RaceWeekResult) {
+	log.Infof("collecting timeslots for season [%d] ...", seasonID)
+
 	season, err := c.db.GetSeasonByID(seasonID)
 	if err != nil {
 		log.Errorf("could not get season [%d] from database: %v", seasonID, err)
