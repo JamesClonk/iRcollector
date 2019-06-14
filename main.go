@@ -204,10 +204,28 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 			return
 		}
 
+		summaries, err := c.Database().GetDriverSummariesBySeasonIDAndWeek(seasonID, week)
+		if err != nil {
+			failure(rw, req, err)
+			return
+		}
+
+		summaryTmpl := `,{[
+{{ range . }}  { "driver": "{{ .Driver.Name }}", "ir_gained": {{ .TotalIRatingGain }}, "sr_gained": {{ .TotalSafetyRatingGain }}, "poles": {{ .Poles }}, "top5": {{ .Top5 }}, "champ_points": {{ .HighestChampPoints }}, "club_points": {{ .TotalClubPoints }}, "nof_races": {{ .NumberOfRaces }} },
+{{ end }}]}`
+		summary := template.Must(template.New("summary").Parse(summaryTmpl))
+		var summariesBuf bytes.Buffer
+		if err := summary.Execute(&summariesBuf, summaries); err != nil {
+			log.Errorf("could not parse summary template: %v", err)
+			failure(rw, req, err)
+			return
+		}
+
 		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.Write(resultsBuf.Bytes())
 		rw.Write(rankingsBuf.Bytes())
+		rw.Write(summariesBuf.Bytes())
 	}
 }
 

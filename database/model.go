@@ -146,6 +146,29 @@ func (rr RaceResult) String() string {
 		rr.IRatingAfter, rr.Incidents, rr.ChampPoints, rr.ClubPoints, rr.ReasonOut)
 }
 
+type Summary struct {
+	Driver                 Driver
+	Division               int
+	HighestIRatingGain     int
+	TotalIRatingGain       int
+	TotalSafetyRatingGain  int
+	AverageIncidentsPerLap float64
+	LapsCompleted          int
+	LapsLead               int
+	Poles                  int
+	Podiums                int
+	Top5                   int
+	TotalPositionsGained   int
+	HighestChampPoints     int
+	TotalClubPoints        int
+	NumberOfRaces          int
+}
+
+func (s Summary) String() string {
+	return fmt.Sprintf("[ Racer: %s, Club: %s, Races: %d, Laps: %d, ChampPoints: %d, ClubPoints: %d ]",
+		s.Driver.Name, s.Driver.Club.Name, s.NumberOfRaces, s.LapsCompleted, s.HighestChampPoints, s.TotalClubPoints)
+}
+
 type TimeRanking struct {
 	Driver       Driver
 	RaceWeek     RaceWeek
