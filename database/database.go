@@ -328,7 +328,7 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]TimeRanking, error) {
 	rankings := make([]TimeRanking, 0)
 	rows, err := db.Queryx(`
-		select
+		select distinct
 			d.pk_driver_id,
 			d.name,
 			cl.pk_club_id,
@@ -822,7 +822,7 @@ func (db *database) GetRaceResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceR
 func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]Summary, error) {
 	summaries := make([]Summary, 0)
 	rows, err := db.Queryx(`
-		select
+		select distinct
 			c.pk_club_id,
 			c.name as club_name,
 			d.pk_driver_id,
@@ -851,7 +851,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 		and rr.official = true
 		and r.laps_completed > 0
 		group by c.pk_club_id, c.name, d.pk_driver_id, d.name, r.division
-		order by max_champ_points desc, sum_club_points desc, driver_name asc`, seasonID, week)
+		order by driver_name asc, max_champ_points desc, sum_club_points desc`, seasonID, week)
 	if err != nil {
 		return nil, err
 	}
