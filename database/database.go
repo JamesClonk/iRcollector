@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/JamesClonk/iRcollector/log"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -382,6 +383,8 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 func (db *database) InsertRaceWeek(raceweek RaceWeek) (RaceWeek, error) {
 	if rw, err := db.GetRaceWeekBySeasonIDAndWeek(raceweek.SeasonID, raceweek.RaceWeek); err == nil && rw.SeasonID > 0 {
 		return rw, nil
+	} else {
+		log.Warnf("could not read raceweek [%d:%d] from database: %v", raceweek.SeasonID, raceweek.RaceWeek, err)
 	}
 
 	stmt, err := db.Preparex(`
