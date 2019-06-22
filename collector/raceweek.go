@@ -39,6 +39,9 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		log.Errorf("empty raceweek: %s", raceweek)
 		return
 	}
+	if err := c.db.UpdateRaceWeekLastUpdateToNow(raceweek.RaceWeekID); err != nil {
+		log.Errorf("could not update raceweek [%d] last-update timestamp in database: %v", r.RaceWeek, err)
+	}
 	log.Debugf("Raceweek: %v", raceweek)
 
 	// figure out raceweek timeslots / schedule

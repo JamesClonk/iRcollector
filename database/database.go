@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -19,6 +20,7 @@ type Database interface {
 	UpsertTimeRanking(TimeRanking) error
 	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
+	UpdateRaceWeekLastUpdateToNow(int) error
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
 	InsertRaceWeekResult(RaceWeekResult) (RaceWeekResult, error)
@@ -384,18 +386,34 @@ func (db *database) InsertRaceWeek(raceweek RaceWeek) (RaceWeek, error) {
 
 	stmt, err := db.Preparex(`
 		insert into raceweeks
-			(raceweek, fk_track_id, fk_season_id)
-		values ($1, $2, $3)`)
+			(raceweek, fk_track_id, fk_season_id, last_update)
+		values ($1, $2, $3, $4)`)
 	if err != nil {
 		return RaceWeek{}, err
 	}
 	defer stmt.Close()
 
 	if _, err := stmt.Exec(
-		raceweek.RaceWeek, raceweek.TrackID, raceweek.SeasonID); err != nil {
+		raceweek.RaceWeek, raceweek.TrackID, raceweek.SeasonID, time.Now()); err != nil {
 		return RaceWeek{}, err
 	}
 	return db.GetRaceWeekBySeasonIDAndWeek(raceweek.SeasonID, raceweek.RaceWeek)
+}
+
+func (db *database) UpdateRaceWeekLastUpdateToNow(id int) error {
+	stmt, err := db.Preparex(`
+		update raceweeks
+		set last_update = $1
+		where pk_raceweek_id = $2`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err := stmt.Exec(time.Now(), id); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (db *database) GetRaceWeekByID(id int) (RaceWeek, error) {
@@ -405,7 +423,8 @@ func (db *database) GetRaceWeekByID(id int) (RaceWeek, error) {
 			r.pk_raceweek_id,
 			r.raceweek,
 			r.fk_track_id,
-			r.fk_season_id
+			r.fk_season_id,
+			r.last_update
 		from raceweeks r
 		where r.pk_raceweek_id = $1`, id); err != nil {
 		return raceweek, err
@@ -420,7 +439,8 @@ func (db *database) GetRaceWeekBySeasonIDAndWeek(seasonID, week int) (RaceWeek, 
 			r.pk_raceweek_id,
 			r.raceweek,
 			r.fk_track_id,
-			r.fk_season_id
+			r.fk_season_id,
+			r.last_update
 		from raceweeks r
 		where r.fk_season_id = $1
 		and r.raceweek = $2`, seasonID, week); err != nil {

@@ -59,10 +59,11 @@ type Season struct {
 }
 
 type RaceWeek struct {
-	SeasonID   int `db:"fk_season_id"` // foreign-key to Season.SeasonID
-	RaceWeekID int `db:"pk_raceweek_id"`
-	RaceWeek   int `db:"raceweek"`
-	TrackID    int `db:"fk_track_id"` // foreign-key to Track.TrackID
+	SeasonID   int       `db:"fk_season_id"` // foreign-key to Season.SeasonID
+	RaceWeekID int       `db:"pk_raceweek_id"`
+	RaceWeek   int       `db:"raceweek"`
+	TrackID    int       `db:"fk_track_id"` // foreign-key to Track.TrackID
+	LastUpdate time.Time `db:"last_update"`
 }
 
 type RaceWeekResult struct {
