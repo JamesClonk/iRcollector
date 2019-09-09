@@ -858,6 +858,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			sum(r.laps_completed) as sum_laps_completed,
 			sum(r.laps_lead) as sum_laps_lead,
 			sum(case when r.starting_position = 0 then 1 else 0 end) as sum_poles,
+			sum(case when r.finishing_position = 0 then 1 else 0 end) as sum_wins,
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
@@ -886,7 +887,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			&s.Driver.Club.ClubID, &s.Driver.Club.Name, &s.Driver.DriverID, &s.Driver.Name,
 			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
 			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
-			&s.Poles, &s.Podiums, &s.Top5,
+			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
 			&s.TotalPositionsGained, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
 		); err != nil {
 			return nil, err

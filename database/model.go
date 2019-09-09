@@ -157,6 +157,7 @@ type Summary struct {
 	LapsCompleted          int
 	LapsLead               int
 	Poles                  int
+	Wins                   int
 	Podiums                int
 	Top5                   int
 	TotalPositionsGained   int
