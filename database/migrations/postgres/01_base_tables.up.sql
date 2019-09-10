@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS cars (
 CREATE TABLE IF NOT EXISTS seasons (
     pk_season_id    INTEGER PRIMARY KEY,
     year            INTEGER NOT NULL,
-    quarter         INTEGER NOT NULL CHECK (quarter < 4),
+    quarter         INTEGER NOT NULL CHECK (quarter < 5),
     category        TEXT NOT NULL,
     name            TEXT NOT NULL UNIQUE,
     short_name      TEXT NOT NULL,
