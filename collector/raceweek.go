@@ -36,7 +36,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		return
 	}
 	if raceweek.RaceWeekID <= 0 {
-		log.Errorf("empty raceweek: %s", raceweek)
+		log.Errorf("empty raceweek: %v", raceweek)
 		return
 	}
 	if err := c.db.UpdateRaceWeekLastUpdateToNow(raceweek.RaceWeekID); err != nil {
@@ -67,7 +67,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 			continue
 		}
 		if result.SubsessionID <= 0 {
-			log.Errorf("empty raceweek result: %s", result)
+			log.Errorf("empty raceweek result: %v", result)
 			return
 		}
 
