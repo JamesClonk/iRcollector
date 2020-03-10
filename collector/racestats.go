@@ -36,7 +36,7 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
 		AvgLaptime:         database.Laptime(int(result.AvgLaptime)),
 		AvgQualiLaps:       result.AvgQualiLaps,
 		WeatherRH:          result.WeatherRH,
-		WeatherTemp:        result.WeatherTemp,
+		WeatherTemp:        result.WeatherTemp.IntValue(),
 	}
 	racestats, err := c.db.InsertRaceStats(stats)
 	if err != nil {

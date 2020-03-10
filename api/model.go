@@ -32,7 +32,7 @@ type RaceResult struct {
 	Laps               int             `json:"eventlapscomplete"`
 	CornersPerLap      int             `json:"cornersperlap"`
 	WeatherRH          int             `json:"weather_rh"`
-	WeatherTemp        int             `json:"weather_temp_value"`
+	WeatherTemp        floatToInt      `json:"weather_temp_value"`
 	StartTime          encodedTime     `json:"start_time"`         // "2019-05-05 14:30:00"
 	SimulatedStartTime encodedTime     `json:"simulatedstarttime"` // "2019-05-04 14:00"
 	SOF                int             `json:"eventstrengthoffield"`
