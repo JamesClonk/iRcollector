@@ -13,10 +13,7 @@ type floatToInt struct {
 }
 
 func (f *floatToInt) UnmarshalJSON(data []byte) error {
-	var value int
-	var err error
-
-	value, err = strconv.Atoi(string(data))
+	value, err := strconv.Atoi(string(data))
 	if err != nil {
 		fv, err := strconv.ParseFloat(string(data), 64)
 		if err != nil {
@@ -26,7 +23,7 @@ func (f *floatToInt) UnmarshalJSON(data []byte) error {
 	}
 
 	*f = floatToInt{int(value)}
-	return err
+	return nil
 }
 
 func (f floatToInt) IntValue() int {
