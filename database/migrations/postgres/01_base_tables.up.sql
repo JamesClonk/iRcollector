@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS seasons (
 -- raceweeks
 CREATE TABLE IF NOT EXISTS raceweeks (
     pk_raceweek_id  SERIAL PRIMARY KEY,
-    raceweek        INTEGER NOT NULL CHECK (raceweek < 13),
+    raceweek        INTEGER NOT NULL CHECK (raceweek < 14),
     fk_track_id     INTEGER NOT NULL,
     fk_season_id    INTEGER NOT NULL,
     FOREIGN KEY (fk_track_id) REFERENCES tracks (pk_track_id) ON DELETE CASCADE,
