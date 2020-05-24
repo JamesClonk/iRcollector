@@ -90,8 +90,8 @@ func (c *Collector) Run() {
 							iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
 							daysSince := int(time.Now().Sub(iracingEpoch).Hours() / 24)
 							weeksSince := daysSince / 7
-							seasonsSince := weeksSince / 13
-							yearsSince := seasonsSince / 4
+							seasonsSince := int(weeksSince / 13)
+							yearsSince := int(seasonsSince / 4)
 							year = 2018 + yearsSince
 							quarter = (seasonsSince % 4) + 1
 						}
@@ -110,7 +110,6 @@ func (c *Collector) Run() {
 						s.BannerImage = season.BannerImage
 						s.PanelImage = season.PanelImage
 						s.LogoImage = season.LogoImage
-						s.Timeslots = s.Timeslots
 						s.StartDate = startDate
 						if err := c.db.UpsertSeason(s); err != nil {
 							log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)

@@ -68,10 +68,10 @@ func (c *Client) Login() error {
 		return err
 	}
 
+	//log.Debugf("%v", string(data))
 	if strings.Contains(strings.ToLower(string(data)), "email address or password was invalid") ||
 		strings.Contains(strings.ToLower(string(data)), "invalid email address or password") ||
-		resp.Header.Get("Location") == "https://members.iracing.com/membersite/failedlogin.jsp" ||
-		resp.Header.Get("Location") == "http://members.iracing.com/membersite/failedlogin.jsp" {
+		strings.Contains(strings.ToLower(resp.Header.Get("Location")), "failedlogin") {
 		return fmt.Errorf("login failed")
 	}
 	c.lastLogin = time.Now()

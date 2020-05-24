@@ -8,7 +8,7 @@ import (
 func (c *Collector) CollectRaceWeek(seasonID, week int) {
 	log.Infof("collecting race week [%d] for season [%d] ...", week, seasonID)
 
-	if week < 0 || week > 11 {
+	if week < 0 || week > 12 { // 0-12 (13) to allow for leap weeks / seasons with 13 official weeks, like 2020S3
 		log.Errorf("week [%d] is invalid", week)
 		return
 	}
