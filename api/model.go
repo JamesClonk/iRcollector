@@ -274,7 +274,9 @@ func (r TimeRanking) String() string {
 	return fmt.Sprintf("[ Name: %s, Race: %s, TT: %s ]", r.DriverName, r.RaceTime, r.TimeTrialTime)
 }
 
-type TimeTrialStanding struct {
+type TimeTrialResult struct {
+	SeasonID   int           `json:"seasonID"` // foreign-key to Season
+	RaceWeek   int           `json:"raceweek"`
 	DriverID   int           `json:"custid"`
 	DriverName encodedString `json:"displayname"`
 	ClubID     int           `json:"clubid"`
@@ -291,5 +293,5 @@ type TimeTrialStanding struct {
 }
 
 func (r TimeTrialStanding) String() string {
-	return fmt.Sprintf("[ Name: %s, Rank: %d, TT Points: %s ]", r.DriverName, r.Rank, r.Points)
+	return fmt.Sprintf("[ Week: %d, Name: %s, Rank: %d, TT Points: %d ]", r.RaceWeek, r.DriverName, r.Rank, r.Points)
 }

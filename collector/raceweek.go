@@ -82,4 +82,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 
 	// upsert time rankings for all car classes of raceweek
 	c.CollectTimeRankings(raceweek)
+
+	// upsert time trial results for all car classes of raceweek
+	c.CollectTTResults(raceweek)
 }
