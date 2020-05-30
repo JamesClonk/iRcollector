@@ -273,3 +273,21 @@ type TimeRanking struct {
 func (r TimeRanking) String() string {
 	return fmt.Sprintf("[ Name: %s, Race: %s, TT: %s ]", r.DriverName, r.RaceTime, r.TimeTrialTime)
 }
+
+type TimeTrialStanding struct {
+	DriverID   int           `json:"custid"`
+	DriverName encodedString `json:"displayname"`
+	ClubID     int           `json:"clubid"`
+	ClubName   encodedString `json:"clubname"`
+	Rank       int           `json:"rank"`
+	Position   int           `json:"pos"`
+	Points     int           `json:"points"`
+	Wins       int           `json:"wins"`
+	Weeks      int           `json:"week"`
+	Dropped    int           `json:"dropped"`
+	Division   int           `json:"division"`
+}
+
+func (r TimeTrialStanding) String() string {
+	return fmt.Sprintf("[ Name: %s, Rank: %d, TT Points: %s ]", r.DriverName, r.Rank, r.Points)
+}
