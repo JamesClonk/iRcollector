@@ -183,13 +183,14 @@ func (s Summary) String() string {
 }
 
 type TimeRanking struct {
-	Driver       Driver
-	RaceWeek     RaceWeek
-	Car          Car
-	TimeTrial    Laptime `db:"time_trial"`
-	Race         Laptime `db:"race"`
-	LicenseClass string  `db:"license_class"`
-	IRating      int     `db:"irating"`
+	Driver              Driver
+	RaceWeek            RaceWeek
+	Car                 Car
+	TimeTrialFastestLap Laptime `db:"time_trial_fastest_lap"`
+	TimeTrial           Laptime `db:"time_trial"`
+	Race                Laptime `db:"race"`
+	LicenseClass        string  `db:"license_class"`
+	IRating             int     `db:"irating"`
 }
 
 func (r TimeRanking) String() string {

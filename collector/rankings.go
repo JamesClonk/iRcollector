@@ -35,15 +35,32 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				continue
 			}
 
+			// collect fastest TT laptime from TT subsession
+			ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
+			if err != nil {
+				log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
+			}
+			//log.Debugf("Result: %v", result)
+			if ttResult.Laps <= 0 { // skip invalid time trial results
+				log.Errorf("invalid time trial result: %v", ttResult)
+			}
+			ttFastestLap := 0
+			for _, row := range ttResult {
+				if row.RacerID == driver.DriverID {
+					ttFastestLap = row.BestLaptime
+				}
+			}
+
 			// upsert time ranking
 			t := database.TimeRanking{
-				Driver:       driver,
-				RaceWeek:     raceweek,
-				Car:          car,
-				TimeTrial:    database.Laptime(ranking.TimeTrialTime.Laptime()),
-				Race:         database.Laptime(ranking.RaceTime.Laptime()),
-				LicenseClass: ranking.LicenseClass.String(),
-				IRating:      ranking.IRating,
+				Driver:              driver,
+				RaceWeek:            raceweek,
+				Car:                 car,
+				TimeTrialFastestLap: database.Laptime(ttFastestLap),
+				TimeTrial:           database.Laptime(ranking.TimeTrialTime.Laptime()),
+				Race:                database.Laptime(ranking.RaceTime.Laptime()),
+				LicenseClass:        ranking.LicenseClass.String(),
+				IRating:             ranking.IRating,
 			}
 			if err := c.db.UpsertTimeRanking(t); err != nil {
 				log.Errorf("could not store time ranking of [%s] in database: %v", ranking.DriverName, err)

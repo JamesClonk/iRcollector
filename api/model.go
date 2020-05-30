@@ -279,9 +279,11 @@ type TimeTrialStanding struct {
 	DriverName encodedString `json:"displayname"`
 	ClubID     int           `json:"clubid"`
 	ClubName   encodedString `json:"clubname"`
+	CarID      int           `json:"carid"`
 	Rank       int           `json:"rank"`
 	Position   int           `json:"pos"`
 	Points     int           `json:"points"`
+	Starts     int           `json:"starts"`
 	Wins       int           `json:"wins"`
 	Weeks      int           `json:"week"`
 	Dropped    int           `json:"dropped"`

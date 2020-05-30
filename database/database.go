@@ -296,7 +296,7 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	stmt, err := tx.Preparex(`
 		insert into time_rankings
-			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial, license_class, irating)
+			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial, time_trial_fastest_lap, license_class, irating)
 		values ($1, $2, $3, $4, $5, $6, $7)
 		on conflict on constraint uniq_time_ranking do update
 		set race = excluded.race,
@@ -321,7 +321,7 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	if _, err = stmt.Exec(
 		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.Car.CarID,
-		null(r.Race), null(r.TimeTrial), r.LicenseClass, r.IRating,
+		null(r.Race), null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
 	); err != nil {
 		tx.Rollback()
 		return err
@@ -349,6 +349,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			c.panel_image,
 			c.logo_image,
 			c.car_image,
+			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
 			coalesce(tr.race, 0),
 			tr.license_class,
@@ -372,7 +373,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 			&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
 			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
-			&t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
+			&t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
 		); err != nil {
 			return nil, err
 		}
