@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS time_trial_results (
     FOREIGN KEY (fk_raceweek_id) REFERENCES raceweeks (pk_raceweek_id) ON DELETE CASCADE,,
     FOREIGN KEY (fk_car_id) REFERENCES cars (pk_car_id) ON DELETE CASCADE,
     FOREIGN KEY (fk_driver_id) REFERENCES drivers (pk_driver_id) ON DELETE CASCADE,
-    CONSTRAINT uniq_time_trial_standings UNIQUE (fk_driver_id, fk_car_id, fk_raceweek_id)
+    CONSTRAINT uniq_time_trial_results UNIQUE (fk_driver_id, fk_car_id, fk_raceweek_id)
 );
 
 -- add time_trial_fastest_lap column to time_rankings

@@ -18,6 +18,8 @@ type Database interface {
 	UpsertCar(Car) error
 	GetCarByID(int) (Car, error)
 	GetCarsByRaceWeekID(int) ([]Car, error)
+	UpsertTimeTrialResult(TimeTrialResult) error
+	GetTimeTrialResultsBySeasonIDAndWeek(int, int) ([]TimeTrialResult, error)
 	UpsertTimeRanking(TimeRanking) error
 	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
@@ -286,6 +288,100 @@ func (db *database) GetCarsByRaceWeekID(raceweekID int) ([]Car, error) {
 		return nil, err
 	}
 	return cars, nil
+}
+
+func (db *database) UpsertTimeTrialResult(r TimeTrialResult) error {
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := tx.Preparex(`
+		insert into time_trial_results
+			(fk_raceweek_id, fk_car_id, fk_driver_id, rank, position, points, starts, wins, weeks, dropped, division, last_update)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		on conflict on constraint uniq_time_trial_results do update
+		set rank = excluded.rank,
+			position = excluded.position,
+			points = excluded.points,
+			starts = excluded.starts,
+			wins = excluded.wins,
+			weeks = excluded.weeks,
+			dropped = excluded.dropped,
+			division = excluded.division,
+			last_update = excluded.last_update`)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	if _, err = stmt.Exec(
+		r.RaceWeek.RaceWeekID, r.Car.CarID, r.Driver.DriverID,
+		r.Rank, r.Position, r.Points, r.Starts,
+		r.Wins, r.Weeks, r.Dropped, r.Division,
+		time.Now(),
+	); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
+func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]TimeTrialResult, error) {
+	results := make([]TimeTrialResult, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			d.pk_driver_id,
+			d.name,
+			cl.pk_club_id,
+			cl.name,
+			rw.pk_raceweek_id,
+			rw.raceweek,
+			rw.fk_season_id,
+			rw.fk_track_id,
+			c.pk_car_id,
+			c.name,
+			c.description,
+			c.model,
+			c.make,
+			c.panel_image,
+			c.logo_image,
+			c.car_image,
+			coalesce(ttr.rank, 0),
+			coalesce(ttr.position, 0),
+			coalesce(ttr.points, 0),
+			coalesce(ttr.starts, 0),
+			coalesce(ttr.wins, 0),
+			coalesce(ttr.weeks, 0),
+			coalesce(ttr.dropped, 0),
+			coalesce(ttr.division, 0)
+		from time_trial_results ttr
+			join cars c on (ttr.fk_car_id = c.pk_car_id)
+			join drivers d on (ttr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join raceweeks rw on (rw.pk_raceweek_id = ttr.fk_raceweek_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		order ttr.points desc, ttr.rank asc, by d.name asc`, seasonID, week)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		r := TimeTrialResult{}
+		if err := rows.Scan(
+			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
+			&r.RaceWeek.RaceWeekID, &r.RaceWeek.RaceWeek, &r.RaceWeek.SeasonID, &r.RaceWeek.TrackID,
+			&r.Car.CarID, &r.Car.Name, &r.Car.Description, &r.Car.Model, &r.Car.Make, &r.Car.PanelImage, &r.Car.LogoImage, &r.Car.CarImage,
+			&r.Rank, &r.Position, &r.Points, &r.Starts, &r.Wins, &r.Weeks, &r.Dropped, &r.Division,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
 }
 
 func (db *database) UpsertTimeRanking(r TimeRanking) error {

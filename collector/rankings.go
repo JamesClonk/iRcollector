@@ -45,9 +45,9 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				log.Errorf("invalid time trial result: %v", ttResult)
 			}
 			ttFastestLap := 0
-			for _, row := range ttResult {
+			for _, row := range ttResult.Rows {
 				if row.RacerID == driver.DriverID {
-					ttFastestLap = row.BestLaptime
+					ttFastestLap = int(row.BestLaptime)
 				}
 			}
 

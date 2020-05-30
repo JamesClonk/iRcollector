@@ -8,12 +8,6 @@ import (
 func (c *Collector) CollectTTResults(raceweek database.RaceWeek) {
 	log.Infof("collecting TT statistics for raceweek [%d] ...", raceweek.RaceWeek)
 
-	season, err := c.db.GetSeasonByID(raceweek.SeasonID)
-	if err != nil {
-		log.Errorf("could not get season [%d] from database: %v", raceweek.SeasonID, err)
-		return
-	}
-
 	cars, err := c.db.GetCarsByRaceWeekID(raceweek.RaceWeekID)
 	if err != nil {
 		log.Errorf("could not get cars [raceweek_id:%d] from database: %v", raceweek.RaceWeekID, err)

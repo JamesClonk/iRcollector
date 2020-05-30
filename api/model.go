@@ -292,6 +292,6 @@ type TimeTrialResult struct {
 	Division   int           `json:"division"`
 }
 
-func (r TimeTrialStanding) String() string {
+func (r TimeTrialResult) String() string {
 	return fmt.Sprintf("[ Week: %d, Name: %s, Rank: %d, TT Points: %d ]", r.RaceWeek, r.DriverName, r.Rank, r.Points)
 }
