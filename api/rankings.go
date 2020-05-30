@@ -80,6 +80,7 @@ func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID, l
 		ranking.ClubName = encodedString(row["27"].(string))      // clubname // "Benelux"
 		ranking.CarID = carID
 		ranking.TrackID = trackID
+		ranking.TimeTrialSubsessionID = int(row["1"].(float64)) // timetrial_subsessionid // 321
 
 		rankings = append(rankings, ranking)
 	}

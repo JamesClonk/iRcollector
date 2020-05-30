@@ -23,35 +23,38 @@ type CareerStats struct {
 	Starts                  int     `json:"starts"`
 }
 
-type RaceResult struct {
-	LeadChanges        int             `json:"nleadchanges"`
-	RaceWeek           int             `json:"race_week_num"`
-	SubsessionID       int             `json:"subsessionid"`
-	SessionID          int             `json:"sessionid"`
-	Cautions           int             `json:"ncautions"`
-	Laps               int             `json:"eventlapscomplete"`
-	CornersPerLap      int             `json:"cornersperlap"`
-	WeatherRH          int             `json:"weather_rh"`
-	WeatherTemp        floatToInt      `json:"weather_temp_value"`
-	StartTime          encodedTime     `json:"start_time"`         // "2019-05-05 14:30:00"
-	SimulatedStartTime encodedTime     `json:"simulatedstarttime"` // "2019-05-04 14:00"
-	SOF                int             `json:"eventstrengthoffield"`
-	CautionLaps        int             `json:"ncautionlaps"`
-	AvgLaptime         laptime         `json:"eventavglap"`
-	AvgQualiLaps       int             `json:"nlapsforqualavg"`
-	Rows               []RaceResultRow `json:"rows"`
+type SessionResult struct {
+	LeadChanges        int                `json:"nleadchanges"`
+	RaceWeek           int                `json:"race_week_num"`
+	SubsessionID       int                `json:"subsessionid"`
+	SessionID          int                `json:"sessionid"`
+	Cautions           int                `json:"ncautions"`
+	Laps               int                `json:"eventlapscomplete"`
+	CornersPerLap      int                `json:"cornersperlap"`
+	WeatherRH          int                `json:"weather_rh"`
+	WeatherTemp        floatToInt         `json:"weather_temp_value"`
+	StartTime          encodedTime        `json:"start_time"`         // "2019-05-05 14:30:00"
+	SimulatedStartTime encodedTime        `json:"simulatedstarttime"` // "2019-05-04 14:00"
+	SOF                int                `json:"eventstrengthoffield"`
+	CautionLaps        int                `json:"ncautionlaps"`
+	AvgLaptime         laptime            `json:"eventavglap"`
+	AvgQualiLaps       int                `json:"nlapsforqualavg"`
+	AvgSoloLaps        int                `json:"nlapsforsoloavg"` // nof laps needed for a valid TT
+	Rows               []SessionResultRow `json:"rows"`
 }
 
-func (rr RaceResult) String() string {
+func (rr SessionResult) String() string {
 	return fmt.Sprintf("[ SubsessionID: %d, AvgLaptime: %s, Laps: %d, LeadChanges: %d, Cautions: %d, SOF: %d ]",
 		rr.SubsessionID, rr.AvgLaptime, rr.Laps, rr.LeadChanges, rr.Cautions, rr.SOF)
 }
 
-type RaceResultRow struct {
+type SessionResultRow struct {
 	RacerID                  int           `json:"custid"`
 	RacerName                encodedString `json:"displayname"`
 	IRatingBefore            int           `json:"oldirating"`
 	IRatingAfter             int           `json:"newirating"`
+	TTRatingBefore           int           `json:"oldttrating"`
+	TTRatingAfter            int           `json:"newttrating"`
 	LicenseLevelBefore       int           `json:"oldlicenselevel"` // "20", "19", "13", etc..
 	LicenseLevelAfter        int           `json:"newlicenselevel"` // "20", "19", "13", etc..
 	LicenseGroup             int           `json:"licensegroup"`    // "20", "19", "13", etc..
@@ -75,6 +78,8 @@ type RaceResultRow struct {
 	Interval                 int           `json:"interval"`         // "0", "184634", etc..
 	ClassInterval            int           `json:"classinterval"`    // "0", "184634", etc..
 	AvgLaptime               laptime       `json:"avglap"`           // "1255213"
+	BestLaptime              laptime       `json:"bestlaptime"`      // "1255213"
+	BestNLapsTime            laptime       `json:"bestnlapstime"`    // "1255213" // TT
 	LapsCompleted            int           `json:"lapscomplete"`     // "21"
 	LapsLead                 int           `json:"lapslead"`         // "21"
 	Incidents                int           `json:"incidents"`        // "0"
@@ -86,7 +91,7 @@ type RaceResultRow struct {
 	SessionType              string        `json:"simsestypename"`   // should be "Race"
 }
 
-func (rrr RaceResultRow) String() string {
+func (rrr SessionResultRow) String() string {
 	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
 		rrr.FinishingPosition, rrr.RacerName, rrr.Club, rrr.AvgLaptime, rrr.LapsLead, rrr.LapsCompleted,
 		rrr.IRatingAfter, rrr.Incidents, rrr.ChampPoints, rrr.ClubPoints, rrr.ReasonOut)
@@ -252,16 +257,17 @@ func (c Car) String() string {
 }
 
 type TimeRanking struct {
-	DriverID      int           `json:"custid"`
-	DriverName    encodedString `json:"displayname"`
-	ClubID        int           `json:"clubid"`
-	ClubName      encodedString `json:"clubname"`
-	CarID         int           `json:"carid"`
-	TrackID       int           `json:"trackid"`
-	TimeTrialTime encodedString `json:"timetrial"`
-	RaceTime      encodedString `json:"race"`
-	LicenseClass  encodedString `json:"licenseclass"`
-	IRating       int           `json:"irating"`
+	DriverID              int           `json:"custid"`
+	DriverName            encodedString `json:"displayname"`
+	ClubID                int           `json:"clubid"`
+	ClubName              encodedString `json:"clubname"`
+	CarID                 int           `json:"carid"`
+	TrackID               int           `json:"trackid"`
+	TimeTrialTime         encodedString `json:"timetrial"`
+	RaceTime              encodedString `json:"race"`
+	LicenseClass          encodedString `json:"licenseclass"`
+	IRating               int           `json:"irating"`
+	TimeTrialSubsessionID int           `json:"timetrial_subsessionid"`
 }
 
 func (r TimeRanking) String() string {
