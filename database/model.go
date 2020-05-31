@@ -199,17 +199,17 @@ func (r TimeRanking) String() string {
 }
 
 type TimeTrialResult struct {
-	RaceWeek RaceWeek
-	Car      Car
-	Driver   Driver
-	Rank     int `db:"rank"`
-	Position int `db:"pos"`
-	Points   int `db:"points"`
-	Starts   int `db:"starts"`
-	Wins     int `db:"wins"`
-	Weeks    int `db:"week"`
-	Dropped  int `db:"dropped"`
-	Division int `db:"division"`
+	RaceWeek   RaceWeek
+	Driver     Driver
+	CarClassID int `db:"car_class_id"`
+	Rank       int `db:"rank"`
+	Position   int `db:"pos"`
+	Points     int `db:"points"`
+	Starts     int `db:"starts"`
+	Wins       int `db:"wins"`
+	Weeks      int `db:"week"`
+	Dropped    int `db:"dropped"`
+	Division   int `db:"division"`
 }
 
 func (t TimeTrialResult) String() string {
