@@ -21,3 +21,7 @@ CREATE TABLE IF NOT EXISTS time_trial_results (
 -- add time_trial_fastest_lap column to time_rankings
 ALTER TABLE time_rankings
 ADD COLUMN time_trial_fastest_lap INTEGER;
+
+-- add time_trial_subsession_id column to time_rankings
+ALTER TABLE time_rankings
+ADD COLUMN time_trial_subsession_id INTEGER;

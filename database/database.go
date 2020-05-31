@@ -22,6 +22,7 @@ type Database interface {
 	GetTimeTrialResultsBySeasonIDAndWeek(int, int) ([]TimeTrialResult, error)
 	UpsertTimeRanking(TimeRanking) error
 	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
+	GetTimeRankingByRaceWeekDriverAndCar(int, int, int) (TimeRanking, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	UpdateRaceWeekLastUpdateToNow(int) error
 	GetRaceWeekByID(int) (RaceWeek, error)
@@ -392,10 +393,11 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	stmt, err := tx.Preparex(`
 		insert into time_rankings
-			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial, time_trial_fastest_lap, license_class, irating)
-		values ($1, $2, $3, $4, $5, $6, $7, $8)
+			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial_subsession_id, time_trial, time_trial_fastest_lap, license_class, irating)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		on conflict on constraint uniq_time_ranking do update
 		set race = excluded.race,
+			time_trial_subsession_id = excluded.time_trial_subsession_id,
 			time_trial_fastest_lap = excluded.time_trial_fastest_lap,
 			time_trial = excluded.time_trial,
 			license_class = excluded.license_class,
@@ -418,12 +420,59 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	if _, err = stmt.Exec(
 		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.Car.CarID,
-		null(r.Race), null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
+		null(r.Race), r.TimeTrialSubsessionID, null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
 	); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
+}
+
+func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, carID int) (TimeRanking, error) {
+	row := db.QueryRowx(`
+		select distinct
+			d.pk_driver_id,
+			d.name,
+			cl.pk_club_id,
+			cl.name,
+			rw.pk_raceweek_id,
+			rw.raceweek,
+			rw.fk_season_id,
+			rw.fk_track_id,
+			c.pk_car_id,
+			c.name,
+			c.description,
+			c.model,
+			c.make,
+			c.panel_image,
+			c.logo_image,
+			c.car_image,
+			coalesce(tr.time_trial_subsession_id, 0),
+			coalesce(tr.time_trial_fastest_lap, 0),
+			coalesce(tr.time_trial, 0),
+			coalesce(tr.race, 0),
+			tr.license_class,
+			tr.irating
+		from time_rankings tr
+			join cars c on (tr.fk_car_id = c.pk_car_id)
+			join drivers d on (tr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join raceweeks rw on (rw.pk_raceweek_id = tr.fk_raceweek_id)
+		where tr.fk_raceweek_id = $1
+		and tr.fk_driver_id = $2
+		and tr.fk_car_id = $3
+		order by d.name asc, tr.irating desc`, raceweekID, driverID, carID)
+
+	t := TimeRanking{}
+	if err := row.Scan(
+		&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
+		&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
+		&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
+		&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
+	); err != nil {
+		return TimeRanking{}, err
+	}
+	return t, nil
 }
 
 func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]TimeRanking, error) {
@@ -446,6 +495,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			c.panel_image,
 			c.logo_image,
 			c.car_image,
+			coalesce(tr.time_trial_subsession_id, 0),
 			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
 			coalesce(tr.race, 0),
@@ -470,7 +520,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 			&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
 			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
-			&t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
+			&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
 		); err != nil {
 			return nil, err
 		}
