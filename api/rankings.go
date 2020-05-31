@@ -19,12 +19,12 @@ func (c *Client) GetRaceTimeRankings(season, quarter, carID, trackID, limit int)
 }
 
 func (c *Client) GetTimeRankings(season, quarter, carID, trackID int) ([]TimeRanking, error) {
-	timeTrialRankings, err := c.GetTimeTrialTimeRankings(season, quarter, carID, trackID, 50)
+	timeTrialRankings, err := c.GetTimeTrialTimeRankings(season, quarter, carID, trackID, 33)
 	if err != nil {
 		return nil, err
 	}
 
-	rankings, err := c.GetRaceTimeRankings(season, quarter, carID, trackID, 50)
+	rankings, err := c.GetRaceTimeRankings(season, quarter, carID, trackID, 44)
 	if err != nil {
 		return nil, err
 	}

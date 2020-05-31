@@ -18,10 +18,13 @@ type Database interface {
 	UpsertCar(Car) error
 	GetCarByID(int) (Car, error)
 	GetCarsByRaceWeekID(int) ([]Car, error)
+	GetCarClassIDsByRaceWeekID(int) ([]int, error)
 	UpsertTimeTrialResult(TimeTrialResult) error
 	GetTimeTrialResultsBySeasonIDAndWeek(int, int) ([]TimeTrialResult, error)
+	GetTimeTrialResultsBySeasonIDWeekAndCarClass(int, int, int) ([]TimeTrialResult, error)
 	UpsertTimeRanking(TimeRanking) error
 	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
+	GetTimeRankingByRaceWeekDriverAndCar(int, int, int) (TimeRanking, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	UpdateRaceWeekLastUpdateToNow(int) error
 	GetRaceWeekByID(int) (RaceWeek, error)
@@ -290,6 +293,21 @@ func (db *database) GetCarsByRaceWeekID(raceweekID int) ([]Car, error) {
 	return cars, nil
 }
 
+func (db *database) GetCarClassIDsByRaceWeekID(raceweekID int) ([]int, error) {
+	carIDs := make([]int, 0)
+	if err := db.Select(&carIDs, `
+		select
+			distinct rr.car_class_id
+		from race_results rr
+			join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
+		where rwr.fk_raceweek_id = $1
+		order by rr.car_class_id asc
+		`, raceweekID); err != nil {
+		return nil, err
+	}
+	return carIDs, nil
+}
+
 func (db *database) UpsertTimeTrialResult(r TimeTrialResult) error {
 	tx, err := db.Beginx()
 	if err != nil {
@@ -298,7 +316,7 @@ func (db *database) UpsertTimeTrialResult(r TimeTrialResult) error {
 
 	stmt, err := tx.Preparex(`
 		insert into time_trial_results
-			(fk_raceweek_id, fk_car_id, fk_driver_id, rank, position, points, starts, wins, weeks, dropped, division, last_update)
+			(fk_raceweek_id, fk_driver_id, car_class_id, rank, position, points, starts, wins, weeks, dropped, division, last_update)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		on conflict on constraint uniq_time_trial_results do update
 		set rank = excluded.rank,
@@ -317,7 +335,7 @@ func (db *database) UpsertTimeTrialResult(r TimeTrialResult) error {
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(
-		r.RaceWeek.RaceWeekID, r.Car.CarID, r.Driver.DriverID,
+		r.RaceWeek.RaceWeekID, r.Driver.DriverID, r.CarClassID,
 		r.Rank, r.Position, r.Points, r.Starts,
 		r.Wins, r.Weeks, r.Dropped, r.Division,
 		time.Now(),
@@ -340,14 +358,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 			rw.raceweek,
 			rw.fk_season_id,
 			rw.fk_track_id,
-			c.pk_car_id,
-			c.name,
-			c.description,
-			c.model,
-			c.make,
-			c.panel_image,
-			c.logo_image,
-			c.car_image,
+			ttr.car_class_id,
 			coalesce(ttr.rank, 0),
 			coalesce(ttr.position, 0),
 			coalesce(ttr.points, 0),
@@ -357,7 +368,6 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 			coalesce(ttr.dropped, 0),
 			coalesce(ttr.division, 0)
 		from time_trial_results ttr
-			join cars c on (ttr.fk_car_id = c.pk_car_id)
 			join drivers d on (ttr.fk_driver_id = d.pk_driver_id)
 			join clubs cl on (d.fk_club_id = cl.pk_club_id)
 			join raceweeks rw on (rw.pk_raceweek_id = ttr.fk_raceweek_id)
@@ -374,8 +384,55 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 		if err := rows.Scan(
 			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
 			&r.RaceWeek.RaceWeekID, &r.RaceWeek.RaceWeek, &r.RaceWeek.SeasonID, &r.RaceWeek.TrackID,
-			&r.Car.CarID, &r.Car.Name, &r.Car.Description, &r.Car.Model, &r.Car.Make, &r.Car.PanelImage, &r.Car.LogoImage, &r.Car.CarImage,
-			&r.Rank, &r.Position, &r.Points, &r.Starts, &r.Wins, &r.Weeks, &r.Dropped, &r.Division,
+			&r.CarClassID, &r.Rank, &r.Position, &r.Points, &r.Starts, &r.Wins, &r.Weeks, &r.Dropped, &r.Division,
+		); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, nil
+}
+
+func (db *database) GetTimeTrialResultsBySeasonIDWeekAndCarClass(seasonID, week, carClassID int) ([]TimeTrialResult, error) {
+	results := make([]TimeTrialResult, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			d.pk_driver_id,
+			d.name,
+			cl.pk_club_id,
+			cl.name,
+			rw.pk_raceweek_id,
+			rw.raceweek,
+			rw.fk_season_id,
+			rw.fk_track_id,
+			ttr.car_class_id,
+			coalesce(ttr.rank, 0),
+			coalesce(ttr.position, 0),
+			coalesce(ttr.points, 0),
+			coalesce(ttr.starts, 0),
+			coalesce(ttr.wins, 0),
+			coalesce(ttr.weeks, 0),
+			coalesce(ttr.dropped, 0),
+			coalesce(ttr.division, 0)
+		from time_trial_results ttr
+			join drivers d on (ttr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join raceweeks rw on (rw.pk_raceweek_id = ttr.fk_raceweek_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		and ttr.car_class_id = $3
+		order ttr.points desc, ttr.rank asc, by d.name asc`, seasonID, week, carClassID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		r := TimeTrialResult{}
+		if err := rows.Scan(
+			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
+			&r.RaceWeek.RaceWeekID, &r.RaceWeek.RaceWeek, &r.RaceWeek.SeasonID, &r.RaceWeek.TrackID,
+			&r.CarClassID, &r.Rank, &r.Position, &r.Points, &r.Starts, &r.Wins, &r.Weeks, &r.Dropped, &r.Division,
 		); err != nil {
 			return nil, err
 		}
@@ -392,10 +449,11 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	stmt, err := tx.Preparex(`
 		insert into time_rankings
-			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial, time_trial_fastest_lap, license_class, irating)
-		values ($1, $2, $3, $4, $5, $6, $7, $8)
+			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial_subsession_id, time_trial, time_trial_fastest_lap, license_class, irating)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		on conflict on constraint uniq_time_ranking do update
 		set race = excluded.race,
+			time_trial_subsession_id = excluded.time_trial_subsession_id,
 			time_trial_fastest_lap = excluded.time_trial_fastest_lap,
 			time_trial = excluded.time_trial,
 			license_class = excluded.license_class,
@@ -418,12 +476,59 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	if _, err = stmt.Exec(
 		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.Car.CarID,
-		null(r.Race), null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
+		null(r.Race), r.TimeTrialSubsessionID, null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
 	); err != nil {
 		tx.Rollback()
 		return err
 	}
 	return tx.Commit()
+}
+
+func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, carID int) (TimeRanking, error) {
+	row := db.QueryRowx(`
+		select distinct
+			d.pk_driver_id,
+			d.name,
+			cl.pk_club_id,
+			cl.name,
+			rw.pk_raceweek_id,
+			rw.raceweek,
+			rw.fk_season_id,
+			rw.fk_track_id,
+			c.pk_car_id,
+			c.name,
+			c.description,
+			c.model,
+			c.make,
+			c.panel_image,
+			c.logo_image,
+			c.car_image,
+			coalesce(tr.time_trial_subsession_id, 0),
+			coalesce(tr.time_trial_fastest_lap, 0),
+			coalesce(tr.time_trial, 0),
+			coalesce(tr.race, 0),
+			tr.license_class,
+			tr.irating
+		from time_rankings tr
+			join cars c on (tr.fk_car_id = c.pk_car_id)
+			join drivers d on (tr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join raceweeks rw on (rw.pk_raceweek_id = tr.fk_raceweek_id)
+		where tr.fk_raceweek_id = $1
+		and tr.fk_driver_id = $2
+		and tr.fk_car_id = $3
+		order by d.name asc, tr.irating desc`, raceweekID, driverID, carID)
+
+	t := TimeRanking{}
+	if err := row.Scan(
+		&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
+		&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
+		&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
+		&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
+	); err != nil {
+		return TimeRanking{}, err
+	}
+	return t, nil
 }
 
 func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]TimeRanking, error) {
@@ -446,6 +551,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			c.panel_image,
 			c.logo_image,
 			c.car_image,
+			coalesce(tr.time_trial_subsession_id, 0),
 			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
 			coalesce(tr.race, 0),
@@ -470,7 +576,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 			&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
 			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
-			&t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
+			&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
 		); err != nil {
 			return nil, err
 		}
