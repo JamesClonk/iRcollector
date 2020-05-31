@@ -359,21 +359,21 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 			rw.fk_season_id,
 			rw.fk_track_id,
 			ttr.car_class_id,
-			coalesce(ttr.rank, 0),
-			coalesce(ttr.position, 0),
-			coalesce(ttr.points, 0),
-			coalesce(ttr.starts, 0),
-			coalesce(ttr.wins, 0),
-			coalesce(ttr.weeks, 0),
-			coalesce(ttr.dropped, 0),
-			coalesce(ttr.division, 0)
+			coalesce(ttr.rank, 0) as rank,
+			coalesce(ttr.position, 0) as position,
+			coalesce(ttr.points, 0) as points,
+			coalesce(ttr.starts, 0) as starts,
+			coalesce(ttr.wins, 0) as wins,
+			coalesce(ttr.weeks, 0) as weeks,
+			coalesce(ttr.dropped, 0) as dropped,
+			coalesce(ttr.division, 0) as division
 		from time_trial_results ttr
 			join drivers d on (ttr.fk_driver_id = d.pk_driver_id)
 			join clubs cl on (d.fk_club_id = cl.pk_club_id)
 			join raceweeks rw on (rw.pk_raceweek_id = ttr.fk_raceweek_id)
 		where rw.fk_season_id = $1
 		and rw.raceweek = $2
-		order ttr.points desc, ttr.rank asc, by d.name asc`, seasonID, week)
+		order by points desc, rank asc, d.name asc`, seasonID, week)
 	if err != nil {
 		return nil, err
 	}
@@ -406,14 +406,14 @@ func (db *database) GetTimeTrialResultsBySeasonIDWeekAndCarClass(seasonID, week,
 			rw.fk_season_id,
 			rw.fk_track_id,
 			ttr.car_class_id,
-			coalesce(ttr.rank, 0),
-			coalesce(ttr.position, 0),
-			coalesce(ttr.points, 0),
-			coalesce(ttr.starts, 0),
-			coalesce(ttr.wins, 0),
-			coalesce(ttr.weeks, 0),
-			coalesce(ttr.dropped, 0),
-			coalesce(ttr.division, 0)
+			coalesce(ttr.rank, 0) as rank,
+			coalesce(ttr.position, 0) as position,
+			coalesce(ttr.points, 0) as points,
+			coalesce(ttr.starts, 0) as starts,
+			coalesce(ttr.wins, 0) as wins,
+			coalesce(ttr.weeks, 0) as weeks,
+			coalesce(ttr.dropped, 0) as dropped,
+			coalesce(ttr.division, 0) as division
 		from time_trial_results ttr
 			join drivers d on (ttr.fk_driver_id = d.pk_driver_id)
 			join clubs cl on (d.fk_club_id = cl.pk_club_id)
@@ -421,7 +421,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDWeekAndCarClass(seasonID, week,
 		where rw.fk_season_id = $1
 		and rw.raceweek = $2
 		and ttr.car_class_id = $3
-		order ttr.points desc, ttr.rank asc, by d.name asc`, seasonID, week, carClassID)
+		order by points desc, rank asc, d.name asc`, seasonID, week, carClassID)
 	if err != nil {
 		return nil, err
 	}
