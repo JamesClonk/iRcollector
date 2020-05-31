@@ -63,17 +63,17 @@ func (c *Client) GetRaceWeekResults(seasonID, raceweek int) ([]RaceWeekResult, e
 	return results, nil
 }
 
-func (c *Client) GetRaceResult(subsessionID int) (RaceResult, error) {
-	log.Infof("Get race session result [subsessionID:%d] ...", subsessionID)
+func (c *Client) GetSessionResult(subsessionID int) (SessionResult, error) {
+	log.Infof("Get session result [subsessionID:%d] ...", subsessionID)
 
 	data, err := c.Get(fmt.Sprintf("https://members.iracing.com/membersite/member/GetSubsessionResults?subsessionID=%d", subsessionID))
 	if err != nil {
-		return RaceResult{}, err
+		return SessionResult{}, err
 	}
 
-	var result RaceResult
+	var result SessionResult
 	if err := json.Unmarshal(data, &result); err != nil {
-		return RaceResult{}, err
+		return SessionResult{}, err
 	}
 	result.SubsessionID = subsessionID
 	return result, nil

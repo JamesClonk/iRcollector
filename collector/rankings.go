@@ -1,6 +1,8 @@
 package collector
 
 import (
+	"strings"
+
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
 )
@@ -35,15 +37,34 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				continue
 			}
 
+			// collect fastest TT laptime from TT subsession
+			ttFastestLap := 0
+			if ranking.TimeTrialSubsessionID > 0 {
+				ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
+				if err != nil {
+					log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
+				}
+				//log.Debugf("Result: %v", result)
+				if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
+					log.Errorf("invalid time trial result: %v", ttResult)
+				}
+				for _, row := range ttResult.Rows {
+					if row.RacerID == driver.DriverID {
+						ttFastestLap = int(row.BestLaptime)
+					}
+				}
+			}
+
 			// upsert time ranking
 			t := database.TimeRanking{
-				Driver:       driver,
-				RaceWeek:     raceweek,
-				Car:          car,
-				TimeTrial:    database.Laptime(ranking.TimeTrialTime.Laptime()),
-				Race:         database.Laptime(ranking.RaceTime.Laptime()),
-				LicenseClass: ranking.LicenseClass.String(),
-				IRating:      ranking.IRating,
+				Driver:              driver,
+				RaceWeek:            raceweek,
+				Car:                 car,
+				TimeTrialFastestLap: database.Laptime(ttFastestLap),
+				TimeTrial:           database.Laptime(ranking.TimeTrialTime.Laptime()),
+				Race:                database.Laptime(ranking.RaceTime.Laptime()),
+				LicenseClass:        ranking.LicenseClass.String(),
+				IRating:             ranking.IRating,
 			}
 			if err := c.db.UpsertTimeRanking(t); err != nil {
 				log.Errorf("could not store time ranking of [%s] in database: %v", ranking.DriverName, err)

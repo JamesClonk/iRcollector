@@ -18,7 +18,7 @@ func (c *Collector) CollectTracks() {
 		// upsert track
 		t := database.Track{
 			TrackID:     track.TrackID,
-			Name:        track.Name,
+			Name:        track.Name.String(),
 			Config:      track.Config,
 			Category:    track.Category,
 			BannerImage: track.BannerImage,

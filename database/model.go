@@ -183,15 +183,35 @@ func (s Summary) String() string {
 }
 
 type TimeRanking struct {
-	Driver       Driver
-	RaceWeek     RaceWeek
-	Car          Car
-	TimeTrial    Laptime `db:"time_trial"`
-	Race         Laptime `db:"race"`
-	LicenseClass string  `db:"license_class"`
-	IRating      int     `db:"irating"`
+	Driver              Driver
+	RaceWeek            RaceWeek
+	Car                 Car
+	TimeTrialFastestLap Laptime `db:"time_trial_fastest_lap"`
+	TimeTrial           Laptime `db:"time_trial"`
+	Race                Laptime `db:"race"`
+	LicenseClass        string  `db:"license_class"`
+	IRating             int     `db:"irating"`
 }
 
 func (r TimeRanking) String() string {
 	return fmt.Sprintf("[ Name: %s, Race: %s, TT: %s ]", r.Driver.Name, r.Race, r.TimeTrial)
+}
+
+type TimeTrialResult struct {
+	RaceWeek RaceWeek
+	Car      Car
+	Driver   Driver
+	Rank     int `db:"rank"`
+	Position int `db:"pos"`
+	Points   int `db:"points"`
+	Starts   int `db:"starts"`
+	Wins     int `db:"wins"`
+	Weeks    int `db:"week"`
+	Dropped  int `db:"dropped"`
+	Division int `db:"division"`
+}
+
+func (t TimeTrialResult) String() string {
+	return fmt.Sprintf("[ Week: %d, Racer: %s, Rank: %d, TT Points: %d ]",
+		t.RaceWeek.RaceWeek, t.Driver.Name, t.Rank, t.Points)
 }

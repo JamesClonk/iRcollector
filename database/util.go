@@ -14,6 +14,13 @@ func (l Laptime) String() string {
 	return fmt.Sprintf("%s", time.Duration(l*100)*time.Microsecond)
 }
 
+func (l Laptime) Seconds() int {
+	if l == 0 {
+		return 0
+	}
+	return int((time.Duration(l*100) * time.Microsecond).Seconds())
+}
+
 func WeekStart(reference time.Time) time.Time {
 	y, m, d := reference.Date()
 

@@ -5,7 +5,7 @@ import (
 	"github.com/JamesClonk/iRcollector/log"
 )
 
-func (c *Collector) CollectRaceWeek(seasonID, week int) {
+func (c *Collector) CollectRaceWeek(seasonID, week int, forceUpdate bool) {
 	log.Infof("collecting race week [%d] for season [%d] ...", week, seasonID)
 
 	if week < 0 || week > 12 { // 0-12 (13) to allow for leap weeks / seasons with 13 official weeks, like 2020S3
@@ -77,9 +77,12 @@ func (c *Collector) CollectRaceWeek(seasonID, week int) {
 		}
 
 		// insert race statistics
-		c.CollectRaceStats(result)
+		c.CollectRaceStats(result, forceUpdate)
 	}
 
 	// upsert time rankings for all car classes of raceweek
 	c.CollectTimeRankings(raceweek)
+
+	// upsert time trial results for all car classes of raceweek
+	c.CollectTTResults(raceweek)
 }

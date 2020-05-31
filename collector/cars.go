@@ -18,7 +18,7 @@ func (c *Collector) CollectCars() {
 		// upsert car
 		cr := database.Car{
 			CarID:       car.CarID,
-			Name:        car.Name,
+			Name:        car.Name.String(),
 			Description: car.Description,
 			Model:       car.Model,
 			Make:        car.Make,

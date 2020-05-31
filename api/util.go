@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+func toUTF8(iso8859 []byte) []byte {
+	buf := make([]rune, len(iso8859))
+	for i, b := range iso8859 {
+		buf[i] = rune(b)
+	}
+	return []byte(string(buf))
+}
+
 type floatToInt struct {
 	value int
 }
@@ -100,4 +108,11 @@ func (l laptime) String() string {
 		return ""
 	}
 	return fmt.Sprintf("%s", time.Duration(l*100)*time.Microsecond)
+}
+
+func (l laptime) Seconds() int {
+	if l == 0 {
+		return 0
+	}
+	return int((time.Duration(l*100) * time.Microsecond).Seconds())
 }

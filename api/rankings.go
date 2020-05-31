@@ -19,7 +19,7 @@ func (c *Client) GetRaceTimeRankings(season, quarter, carID, trackID, limit int)
 }
 
 func (c *Client) GetTimeRankings(season, quarter, carID, trackID int) ([]TimeRanking, error) {
-	timeTrialRankings, err := c.GetTimeTrialTimeRankings(season, quarter, carID, trackID, 30)
+	timeTrialRankings, err := c.GetTimeTrialTimeRankings(season, quarter, carID, trackID, 50)
 	if err != nil {
 		return nil, err
 	}
@@ -36,6 +36,7 @@ func (c *Client) GetTimeRankings(season, quarter, carID, trackID int) ([]TimeRan
 			if ttRanking.DriverID == ranking.DriverID {
 				found = true
 				rankings[r].TimeTrialTime = ttRanking.TimeTrialTime
+				rankings[r].TimeTrialSubsessionID = ttRanking.TimeTrialSubsessionID
 				break
 			}
 		}
@@ -80,6 +81,11 @@ func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID, l
 		ranking.ClubName = encodedString(row["27"].(string))      // clubname // "Benelux"
 		ranking.CarID = carID
 		ranking.TrackID = trackID
+		ranking.TimeTrialSubsessionID = -1
+		ttId, ok := row["1"].(float64)
+		if ok {
+			ranking.TimeTrialSubsessionID = int(ttId) // timetrial_subsessionid // 321
+		}
 
 		rankings = append(rankings, ranking)
 	}
