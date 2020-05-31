@@ -393,9 +393,10 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 	stmt, err := tx.Preparex(`
 		insert into time_rankings
 			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial, time_trial_fastest_lap, license_class, irating)
-		values ($1, $2, $3, $4, $5, $6, $7)
+		values ($1, $2, $3, $4, $5, $6, $7, $8)
 		on conflict on constraint uniq_time_ranking do update
 		set race = excluded.race,
+			time_trial_fastest_lap = excluded.time_trial_fastest_lap,
 			time_trial = excluded.time_trial,
 			license_class = excluded.license_class,
 			irating = excluded.irating`)

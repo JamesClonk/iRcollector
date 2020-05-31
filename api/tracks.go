@@ -27,6 +27,7 @@ func (c *Client) GetTracks() ([]Track, error) {
 			jsonObject = removeRx.ReplaceAll(jsonObject, nil)
 			jsonObject = removeRx2.ReplaceAll(jsonObject, nil)
 			jsonObject = append(jsonObject, []byte("}")...)
+			jsonObject = toUTF8(jsonObject)
 
 			var track Track
 			if err := json.Unmarshal(jsonObject, &track); err != nil {

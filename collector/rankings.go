@@ -1,6 +1,8 @@
 package collector
 
 import (
+	"strings"
+
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
 )
@@ -36,18 +38,20 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 			}
 
 			// collect fastest TT laptime from TT subsession
-			ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
-			if err != nil {
-				log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
-			}
-			//log.Debugf("Result: %v", result)
-			if ttResult.Laps <= 0 { // skip invalid time trial results
-				log.Errorf("invalid time trial result: %v", ttResult)
-			}
 			ttFastestLap := 0
-			for _, row := range ttResult.Rows {
-				if row.RacerID == driver.DriverID {
-					ttFastestLap = int(row.BestLaptime)
+			if ranking.TimeTrialSubsessionID > 0 {
+				ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
+				if err != nil {
+					log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
+				}
+				//log.Debugf("Result: %v", result)
+				if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
+					log.Errorf("invalid time trial result: %v", ttResult)
+				}
+				for _, row := range ttResult.Rows {
+					if row.RacerID == driver.DriverID {
+						ttFastestLap = int(row.BestLaptime)
+					}
 				}
 			}
 

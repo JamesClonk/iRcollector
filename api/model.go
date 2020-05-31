@@ -24,6 +24,7 @@ type CareerStats struct {
 }
 
 type SessionResult struct {
+	PointsType         string             `json:"pointstype"` // race or timetrial
 	LeadChanges        int                `json:"nleadchanges"`
 	RaceWeek           int                `json:"race_week_num"`
 	SubsessionID       int                `json:"subsessionid"`
@@ -136,20 +137,20 @@ func (rrr SessionResultRow) String() string {
 	};
 */
 type Season struct {
-	SeasonID        int    `json:"seasonID"`
-	Category        string `json:"category"`
-	CategoryID      int    `json:"catid"`
-	SeasonName      string `json:"seasonName"`
-	SeasonNameShort string `json:"seasonName_short"`
-	SeriesName      string `json:"seriesName"`
-	SeriesNameShort string `json:"seriesName_short"`
-	BannerImage     string `json:"banner_img"`
-	PanelImage      string `json:"col_color_img"`
-	LogoImage       string `json:"exp_img"`
-	RaceWeek        int    `json:"raceweek"`
-	TrackID         int    `json:"trackid"`
-	TrackName       string `json:"trackname"`
-	TrackConfig     string `json:"trackconfig"`
+	SeasonID        int           `json:"seasonID"`
+	Category        string        `json:"category"`
+	CategoryID      int           `json:"catid"`
+	SeasonName      string        `json:"seasonName"`
+	SeasonNameShort string        `json:"seasonName_short"`
+	SeriesName      string        `json:"seriesName"`
+	SeriesNameShort string        `json:"seriesName_short"`
+	BannerImage     string        `json:"banner_img"`
+	PanelImage      string        `json:"col_color_img"`
+	LogoImage       string        `json:"exp_img"`
+	RaceWeek        int           `json:"raceweek"`
+	TrackID         int           `json:"trackid"`
+	TrackName       encodedString `json:"trackname"`
+	TrackConfig     string        `json:"trackconfig"`
 }
 
 func (s Season) String() string {
@@ -201,15 +202,15 @@ func (rws RaceWeekResult) String() string {
 	};
 */
 type Track struct {
-	TrackID     int    `json:"trackID"`
-	Name        string `json:"name"`
-	Category    string `json:"category"`
-	Config      string `json:"configname"`
-	BannerImage string `json:"banner_img"`
-	PanelImage  string `json:"col_color_img"`
-	LogoImage   string `json:"exp_logo_img"`
-	MapImage    string `json:"exp_map_img"`
-	ConfigImage string `json:"exp_config_img"`
+	TrackID     int           `json:"trackID"`
+	Name        encodedString `json:"name"`
+	Category    string        `json:"category"`
+	Config      string        `json:"configname"`
+	BannerImage string        `json:"banner_img"`
+	PanelImage  string        `json:"col_color_img"`
+	LogoImage   string        `json:"exp_logo_img"`
+	MapImage    string        `json:"exp_map_img"`
+	ConfigImage string        `json:"exp_config_img"`
 }
 
 func (t Track) String() string {
@@ -242,14 +243,14 @@ func (t Track) String() string {
 	};
 */
 type Car struct {
-	CarID       int    `json:"carID"`
-	Name        string `json:"name"`
-	Description string `json:"desc"`
-	Model       string `json:"model"`
-	Make        string `json:"make"`
-	PanelImage  string `json:"collapsedimg"`
-	LogoImage   string `json:"expanded_mfr_img"`
-	CarImage    string `json:"expanded_car_img"`
+	CarID       int           `json:"carID"`
+	Name        encodedString `json:"name"`
+	Description string        `json:"desc"`
+	Model       string        `json:"model"`
+	Make        string        `json:"make"`
+	PanelImage  string        `json:"collapsedimg"`
+	LogoImage   string        `json:"expanded_mfr_img"`
+	CarImage    string        `json:"expanded_car_img"`
 }
 
 func (c Car) String() string {

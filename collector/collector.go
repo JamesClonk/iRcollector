@@ -88,7 +88,7 @@ func (c *Collector) Run() {
 						// if we couldn't figure out the season from SeasonNameShort, then we'll try to calculate it based on 2018S1 which started on 2017-12-12
 						if year < 2010 || quarter < 1 {
 							iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
-							daysSince := int(time.Now().Sub(iracingEpoch).Hours() / 24)
+							daysSince := int(time.Since(iracingEpoch).Hours() / 24)
 							weeksSince := daysSince / 7
 							seasonsSince := int(weeksSince / 13)
 							yearsSince := int(seasonsSince / 4)

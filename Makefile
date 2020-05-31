@@ -16,7 +16,7 @@ run: build
 
 .PHONY: dev
 ## dev: sets up postgres and runs the application
-dev: db
+dev:
 	scripts/dev.sh
 
 .PHONY: build
@@ -60,7 +60,7 @@ glide:
 
 .PHONY: db
 ## db: runs postgres backend on docker
-db: stop-db start-db
+db: stop-db start-db connect
 
 .PHONY: start-db
 start-db:
