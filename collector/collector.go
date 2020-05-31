@@ -36,6 +36,8 @@ func (c *Collector) Database() database.Database {
 func (c *Collector) Run() {
 	seasonrx := regexp.MustCompile(`20[1-5][0-9] Season [1-4]`) // "2019 Season 2"
 
+	forceUpdate := false
+	forceUpdateCounter := 0
 	for {
 		series, err := c.db.GetSeries()
 		if err != nil {
@@ -117,11 +119,11 @@ func (c *Collector) Run() {
 					}
 
 					// insert current raceweek
-					c.CollectRaceWeek(season.SeasonID, season.RaceWeek)
+					c.CollectRaceWeek(season.SeasonID, season.RaceWeek, forceUpdate)
 
 					// update previous week too
 					if season.RaceWeek > 0 {
-						c.CollectRaceWeek(season.SeasonID, season.RaceWeek-1)
+						c.CollectRaceWeek(season.SeasonID, season.RaceWeek-1, forceUpdate)
 					} else {
 						// find previous season
 						ss, err := c.db.GetSeasonsBySeriesID(series.SeriesID)
@@ -136,7 +138,7 @@ func (c *Collector) Run() {
 								quarterToFind = 4
 							}
 							if s.Year == yearToFind && s.Quarter == quarterToFind { // previous season found
-								c.CollectRaceWeek(s.SeasonID, 11)
+								c.CollectRaceWeek(s.SeasonID, 11, forceUpdate)
 								break
 							}
 						}
@@ -148,6 +150,16 @@ func (c *Collector) Run() {
 			}
 		}
 
+		// check if we should forcibly update the whole raceweek / do a full snapshot
+		if forceUpdate {
+			forceUpdate = false
+			forceUpdateCounter = 0
+		}
+		forceUpdateCounter++
+		if forceUpdateCounter > 33 {
+			forceUpdate = true
+			forceUpdateCounter = 0
+		}
 		time.Sleep(99 * time.Minute)
 	}
 }
@@ -156,6 +168,6 @@ func (c *Collector) CollectSeason(seasonID int) {
 	log.Infof("collecting whole season [%d], all 12 weeks ...", seasonID)
 
 	for w := 0; w < 12; w++ {
-		c.CollectRaceWeek(seasonID, w)
+		c.CollectRaceWeek(seasonID, w, true)
 	}
 }

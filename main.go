@@ -62,14 +62,14 @@ func router(c *collector.Collector) *mux.Router {
 }
 
 func failure(rw http.ResponseWriter, req *http.Request, err error) {
-	rw.WriteHeader(500)
 	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(500)
 	rw.Write([]byte(fmt.Sprintf(`{ "error": "%v" }`, err.Error())))
 }
 
 func showHealth(rw http.ResponseWriter, req *http.Request) {
-	rw.WriteHeader(200)
 	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(200)
 	rw.Write([]byte(`{ "status": "ok" }`))
 }
 
@@ -88,8 +88,8 @@ func collectSeason(c *collector.Collector) func(rw http.ResponseWriter, req *htt
 		}
 
 		go c.CollectSeason(seasonID)
-		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
 		rw.Write([]byte(`{ "season": "` + vars["seasonID"] + `" }`))
 	}
 }
@@ -117,8 +117,8 @@ func showSeasons(c *collector.Collector) func(rw http.ResponseWriter, req *http.
 			return
 		}
 
-		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
 		rw.Write(buf.Bytes())
 	}
 }
@@ -143,9 +143,9 @@ func collectWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.
 			return
 		}
 
-		go c.CollectRaceWeek(seasonID, week)
-		rw.WriteHeader(200)
+		go c.CollectRaceWeek(seasonID, week, true)
 		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
 		rw.Write([]byte(`{ "season": "` + vars["seasonID"] + `", "week": "` + vars["week"] + `" }`))
 	}
 }
@@ -221,8 +221,8 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 			return
 		}
 
-		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
 		rw.Write(resultsBuf.Bytes())
 		rw.Write(rankingsBuf.Bytes())
 		rw.Write(summariesBuf.Bytes())
@@ -283,8 +283,8 @@ func showRace(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 			return
 		}
 
-		rw.WriteHeader(200)
 		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
 		rw.Write(buf.Bytes())
 	}
 }

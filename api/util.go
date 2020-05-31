@@ -109,3 +109,10 @@ func (l laptime) String() string {
 	}
 	return fmt.Sprintf("%s", time.Duration(l*100)*time.Microsecond)
 }
+
+func (l laptime) Seconds() int {
+	if l == 0 {
+		return 0
+	}
+	return int((time.Duration(l*100) * time.Microsecond).Seconds())
+}

@@ -3,13 +3,24 @@ package collector
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
 )
 
-func (c *Collector) CollectRaceStats(rws database.RaceWeekResult) {
+func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bool) {
 	log.Infof("collecting race stats for subsession [%d]...", rws.SubsessionID)
+
+	// check if race stats need to be updated in DB
+	if !forceUpdate {
+		racestats, err := c.db.GetRaceStatsBySubsessionID(rws.SubsessionID)
+		if err == nil && racestats.SubsessionID == rws.SubsessionID && racestats.Laps > 0 &&
+			int(time.Since(racestats.StartTime).Seconds()) >= racestats.AvgLaptime.Seconds()*racestats.Laps*20 {
+			log.Infof("Existing race stats found, no need for update: %s", racestats)
+			return
+		}
+	}
 
 	// collect race result
 	result, err := c.client.GetSessionResult(rws.SubsessionID)
