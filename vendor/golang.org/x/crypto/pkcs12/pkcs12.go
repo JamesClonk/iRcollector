@@ -7,9 +7,6 @@
 // This implementation is distilled from https://tools.ietf.org/html/rfc7292
 // and referenced documents. It is intended for decoding P12/PFX-stored
 // certificates and keys for use with the crypto/tls package.
-//
-// This package is frozen. If it's missing functionality you need, consider
-// an alternative like software.sslmate.com/src/go-pkcs12.
 package pkcs12
 
 import (
@@ -103,7 +100,7 @@ func unmarshal(in []byte, out interface{}) error {
 	return nil
 }
 
-// ToPEM converts all "safe bags" contained in pfxData to PEM blocks.
+// ConvertToPEM converts all "safe bags" contained in pfxData to PEM blocks.
 func ToPEM(pfxData []byte, password string) ([]*pem.Block, error) {
 	encodedPassword, err := bmpString(password)
 	if err != nil {
@@ -111,10 +108,6 @@ func ToPEM(pfxData []byte, password string) ([]*pem.Block, error) {
 	}
 
 	bags, encodedPassword, err := getSafeContents(pfxData, encodedPassword)
-
-	if err != nil {
-		return nil, err
-	}
 
 	blocks := make([]*pem.Block, 0, len(bags))
 	for _, bag := range bags {
@@ -211,7 +204,7 @@ func convertAttribute(attribute *pkcs12Attribute) (key, value string, err error)
 
 // Decode extracts a certificate and private key from pfxData. This function
 // assumes that there is only one certificate and only one private key in the
-// pfxData; if there are more use ToPEM instead.
+// pfxData.
 func Decode(pfxData []byte, password string) (privateKey interface{}, certificate *x509.Certificate, err error) {
 	encodedPassword, err := bmpString(password)
 	if err != nil {

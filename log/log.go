@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/JamesClonk/iRcollector/env"
+	"github.com/sebest/logrusly"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,6 +32,13 @@ func newLogger(writer io.Writer) *logrus.Logger {
 		DisableColors: true,
 		FullTimestamp: true,
 	})
+
+	// add loggly hook if available
+	logglyToken := env.Get("LOGGLY_TOKEN", "")
+	if len(logglyToken) > 0 {
+		hook := logrusly.NewLogglyHook(logglyToken, "ircollector.jamesclonk.io", logrus.WarnLevel, "iRcollector")
+		logger.Hooks.Add(hook)
+	}
 
 	return logger
 }

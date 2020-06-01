@@ -11,16 +11,12 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 	"testing"
 
-	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/ssh/testdata"
 )
 
@@ -32,8 +28,6 @@ func rawKey(pub PublicKey) interface{} {
 		return (*dsa.PublicKey)(k)
 	case *ecdsaPublicKey:
 		return (*ecdsa.PublicKey)(k)
-	case ed25519PublicKey:
-		return (ed25519.PublicKey)(k)
 	case *Certificate:
 		return k
 	}
@@ -109,49 +103,6 @@ func TestKeySignVerify(t *testing.T) {
 	}
 }
 
-func TestKeySignWithAlgorithmVerify(t *testing.T) {
-	for _, priv := range testSigners {
-		if algorithmSigner, ok := priv.(AlgorithmSigner); !ok {
-			t.Errorf("Signers constructed by ssh package should always implement the AlgorithmSigner interface: %T", priv)
-		} else {
-			pub := priv.PublicKey()
-			data := []byte("sign me")
-
-			signWithAlgTestCase := func(algorithm string, expectedAlg string) {
-				sig, err := algorithmSigner.SignWithAlgorithm(rand.Reader, data, algorithm)
-				if err != nil {
-					t.Fatalf("Sign(%T): %v", priv, err)
-				}
-				if sig.Format != expectedAlg {
-					t.Errorf("signature format did not match requested signature algorithm: %s != %s", sig.Format, expectedAlg)
-				}
-
-				if err := pub.Verify(data, sig); err != nil {
-					t.Errorf("publicKey.Verify(%T): %v", priv, err)
-				}
-				sig.Blob[5]++
-				if err := pub.Verify(data, sig); err == nil {
-					t.Errorf("publicKey.Verify on broken sig did not fail")
-				}
-			}
-
-			// Using the empty string as the algorithm name should result in the same signature format as the algorithm-free Sign method.
-			defaultSig, err := priv.Sign(rand.Reader, data)
-			if err != nil {
-				t.Fatalf("Sign(%T): %v", priv, err)
-			}
-			signWithAlgTestCase("", defaultSig.Format)
-
-			// RSA keys are the only ones which currently support more than one signing algorithm
-			if pub.Type() == KeyAlgoRSA {
-				for _, algorithm := range []string{SigAlgoRSA, SigAlgoRSASHA2256, SigAlgoRSASHA2512} {
-					signWithAlgTestCase(algorithm, algorithm)
-				}
-			}
-		}
-	}
-}
-
 func TestParseRSAPrivateKey(t *testing.T) {
 	key := testPrivateKeys["rsa"]
 
@@ -175,47 +126,6 @@ func TestParseECPrivateKey(t *testing.T) {
 
 	if !validateECPublicKey(ecKey.Curve, ecKey.X, ecKey.Y) {
 		t.Fatalf("public key does not validate.")
-	}
-}
-
-// See Issue https://github.com/golang/go/issues/6650.
-func TestParseEncryptedPrivateKeysFails(t *testing.T) {
-	const wantSubstring = "encrypted"
-	for i, tt := range testdata.PEMEncryptedKeys {
-		_, err := ParsePrivateKey(tt.PEMBytes)
-		if err == nil {
-			t.Errorf("#%d key %s: ParsePrivateKey successfully parsed, expected an error", i, tt.Name)
-			continue
-		}
-
-		if !strings.Contains(err.Error(), wantSubstring) {
-			t.Errorf("#%d key %s: got error %q, want substring %q", i, tt.Name, err, wantSubstring)
-		}
-	}
-}
-
-// Parse encrypted private keys with passphrase
-func TestParseEncryptedPrivateKeysWithPassphrase(t *testing.T) {
-	data := []byte("sign me")
-	for _, tt := range testdata.PEMEncryptedKeys {
-		s, err := ParsePrivateKeyWithPassphrase(tt.PEMBytes, []byte(tt.EncryptionKey))
-		if err != nil {
-			t.Fatalf("ParsePrivateKeyWithPassphrase returned error: %s", err)
-			continue
-		}
-		sig, err := s.Sign(rand.Reader, data)
-		if err != nil {
-			t.Fatalf("dsa.Sign: %v", err)
-		}
-		if err := s.PublicKey().Verify(data, sig); err != nil {
-			t.Errorf("Verify failed: %v", err)
-		}
-	}
-
-	tt := testdata.PEMEncryptedKeys[0]
-	_, err := ParsePrivateKeyWithPassphrase(tt.PEMBytes, []byte("incorrect"))
-	if err != x509.IncorrectPasswordError {
-		t.Fatalf("got %v want IncorrectPasswordError", err)
 	}
 }
 
@@ -279,7 +189,7 @@ func TestMarshalParsePublicKey(t *testing.T) {
 	}
 }
 
-type testAuthResult struct {
+type authResult struct {
 	pubKey   PublicKey
 	options  []string
 	comments string
@@ -287,11 +197,11 @@ type testAuthResult struct {
 	ok       bool
 }
 
-func testAuthorizedKeys(t *testing.T, authKeys []byte, expected []testAuthResult) {
+func testAuthorizedKeys(t *testing.T, authKeys []byte, expected []authResult) {
 	rest := authKeys
-	var values []testAuthResult
+	var values []authResult
 	for len(rest) > 0 {
-		var r testAuthResult
+		var r authResult
 		var err error
 		r.pubKey, r.comments, r.options, rest, err = ParseAuthorizedKey(rest)
 		r.ok = (err == nil)
@@ -309,7 +219,7 @@ func TestAuthorizedKeyBasic(t *testing.T) {
 	pub, pubSerialized := getTestKey()
 	line := "ssh-rsa " + pubSerialized + " user@host"
 	testAuthorizedKeys(t, []byte(line),
-		[]testAuthResult{
+		[]authResult{
 			{pub, nil, "user@host", "", true},
 		})
 }
@@ -331,7 +241,7 @@ func TestAuth(t *testing.T) {
 		authOptions := strings.Join(authWithOptions, eol)
 		rest2 := strings.Join(authWithOptions[3:], eol)
 		rest3 := strings.Join(authWithOptions[6:], eol)
-		testAuthorizedKeys(t, []byte(authOptions), []testAuthResult{
+		testAuthorizedKeys(t, []byte(authOptions), []authResult{
 			{pub, []string{`env="HOME=/home/root"`, "no-port-forwarding"}, "user@host", rest2, true},
 			{pub, []string{`env="HOME=/home/root2"`}, "user2@host2", rest3, true},
 			{nil, nil, "", "", false},
@@ -342,7 +252,7 @@ func TestAuth(t *testing.T) {
 func TestAuthWithQuotedSpaceInEnv(t *testing.T) {
 	pub, pubSerialized := getTestKey()
 	authWithQuotedSpaceInEnv := []byte(`env="HOME=/home/root dir",no-port-forwarding ssh-rsa ` + pubSerialized + ` user@host`)
-	testAuthorizedKeys(t, []byte(authWithQuotedSpaceInEnv), []testAuthResult{
+	testAuthorizedKeys(t, []byte(authWithQuotedSpaceInEnv), []authResult{
 		{pub, []string{`env="HOME=/home/root dir"`, "no-port-forwarding"}, "user@host", "", true},
 	})
 }
@@ -350,7 +260,7 @@ func TestAuthWithQuotedSpaceInEnv(t *testing.T) {
 func TestAuthWithQuotedCommaInEnv(t *testing.T) {
 	pub, pubSerialized := getTestKey()
 	authWithQuotedCommaInEnv := []byte(`env="HOME=/home/root,dir",no-port-forwarding ssh-rsa ` + pubSerialized + `   user@host`)
-	testAuthorizedKeys(t, []byte(authWithQuotedCommaInEnv), []testAuthResult{
+	testAuthorizedKeys(t, []byte(authWithQuotedCommaInEnv), []authResult{
 		{pub, []string{`env="HOME=/home/root,dir"`, "no-port-forwarding"}, "user@host", "", true},
 	})
 }
@@ -359,11 +269,11 @@ func TestAuthWithQuotedQuoteInEnv(t *testing.T) {
 	pub, pubSerialized := getTestKey()
 	authWithQuotedQuoteInEnv := []byte(`env="HOME=/home/\"root dir",no-port-forwarding` + "\t" + `ssh-rsa` + "\t" + pubSerialized + `   user@host`)
 	authWithDoubleQuotedQuote := []byte(`no-port-forwarding,env="HOME=/home/ \"root dir\"" ssh-rsa ` + pubSerialized + "\t" + `user@host`)
-	testAuthorizedKeys(t, []byte(authWithQuotedQuoteInEnv), []testAuthResult{
+	testAuthorizedKeys(t, []byte(authWithQuotedQuoteInEnv), []authResult{
 		{pub, []string{`env="HOME=/home/\"root dir"`, "no-port-forwarding"}, "user@host", "", true},
 	})
 
-	testAuthorizedKeys(t, []byte(authWithDoubleQuotedQuote), []testAuthResult{
+	testAuthorizedKeys(t, []byte(authWithDoubleQuotedQuote), []authResult{
 		{pub, []string{"no-port-forwarding", `env="HOME=/home/ \"root dir\""`}, "user@host", "", true},
 	})
 }
@@ -372,7 +282,7 @@ func TestAuthWithInvalidSpace(t *testing.T) {
 	_, pubSerialized := getTestKey()
 	authWithInvalidSpace := []byte(`env="HOME=/home/root dir", no-port-forwarding ssh-rsa ` + pubSerialized + ` user@host
 #more to follow but still no valid keys`)
-	testAuthorizedKeys(t, []byte(authWithInvalidSpace), []testAuthResult{
+	testAuthorizedKeys(t, []byte(authWithInvalidSpace), []authResult{
 		{nil, nil, "", "", false},
 	})
 }
@@ -382,7 +292,7 @@ func TestAuthWithMissingQuote(t *testing.T) {
 	authWithMissingQuote := []byte(`env="HOME=/home/root,no-port-forwarding ssh-rsa ` + pubSerialized + ` user@host
 env="HOME=/home/root",shared-control ssh-rsa ` + pubSerialized + ` user@host`)
 
-	testAuthorizedKeys(t, []byte(authWithMissingQuote), []testAuthResult{
+	testAuthorizedKeys(t, []byte(authWithMissingQuote), []authResult{
 		{pub, []string{`env="HOME=/home/root"`, `shared-control`}, "user@host", "", true},
 	})
 }
@@ -396,14 +306,14 @@ func TestInvalidEntry(t *testing.T) {
 }
 
 var knownHostsParseTests = []struct {
-	input string
-	err   string
+	input     string
+	err       string
 
-	marker  string
-	comment string
-	hosts   []string
-	rest    string
-}{
+	marker   string
+	comment  string
+	hosts    []string
+	rest     string
+} {
 	{
 		"",
 		"EOF",
@@ -462,13 +372,13 @@ var knownHostsParseTests = []struct {
 		"localhost,[host2:123]\tssh-rsa {RSAPUB}\tcomment comment",
 		"",
 
-		"", "comment comment", []string{"localhost", "[host2:123]"}, "",
+		"", "comment comment", []string{"localhost","[host2:123]"}, "",
 	},
 	{
 		"@marker \tlocalhost,[host2:123]\tssh-rsa {RSAPUB}",
 		"",
 
-		"marker", "", []string{"localhost", "[host2:123]"}, "",
+		"marker", "", []string{"localhost","[host2:123]"}, "",
 	},
 	{
 		"@marker \tlocalhost,[host2:123]\tssh-rsa aabbccdd",
@@ -522,53 +432,6 @@ func TestKnownHostsParsing(t *testing.T) {
 
 		if rest := string(rest); rest != test.rest {
 			t.Errorf("#%d: expected remaining input to be %q, but got %q", i, test.rest, rest)
-		}
-	}
-}
-
-func TestFingerprintLegacyMD5(t *testing.T) {
-	pub, _ := getTestKey()
-	fingerprint := FingerprintLegacyMD5(pub)
-	want := "fb:61:6d:1a:e3:f0:95:45:3c:a0:79:be:4a:93:63:66" // ssh-keygen -lf -E md5 rsa
-	if fingerprint != want {
-		t.Errorf("got fingerprint %q want %q", fingerprint, want)
-	}
-}
-
-func TestFingerprintSHA256(t *testing.T) {
-	pub, _ := getTestKey()
-	fingerprint := FingerprintSHA256(pub)
-	want := "SHA256:Anr3LjZK8YVpjrxu79myrW9Hrb/wpcMNpVvTq/RcBm8" // ssh-keygen -lf rsa
-	if fingerprint != want {
-		t.Errorf("got fingerprint %q want %q", fingerprint, want)
-	}
-}
-
-func TestInvalidKeys(t *testing.T) {
-	keyTypes := []string{
-		"RSA PRIVATE KEY",
-		"PRIVATE KEY",
-		"EC PRIVATE KEY",
-		"DSA PRIVATE KEY",
-		"OPENSSH PRIVATE KEY",
-	}
-
-	for _, keyType := range keyTypes {
-		for _, dataLen := range []int{0, 1, 2, 5, 10, 20} {
-			data := make([]byte, dataLen)
-			if _, err := io.ReadFull(rand.Reader, data); err != nil {
-				t.Fatal(err)
-			}
-
-			var buf bytes.Buffer
-			pem.Encode(&buf, &pem.Block{
-				Type:  keyType,
-				Bytes: data,
-			})
-
-			// This test is just to ensure that the function
-			// doesn't panic so the return value is ignored.
-			ParseRawPrivateKey(buf.Bytes())
 		}
 	}
 }

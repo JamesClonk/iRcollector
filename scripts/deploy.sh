@@ -20,6 +20,10 @@ if [ -z "${APC_SPACE}" ]; then
 	echo "APC_SPACE must be set!"
 	exit 1
 fi
+if [ -z "${LOGGLY_TOKEN}" ]; then
+	echo "LOGGLY_TOKEN must be set!"
+	exit 1
+fi
 if [ -z "${IR_USERNAME}" ]; then
 	echo "IR_USERNAME must be set!"
 	exit 1
@@ -55,6 +59,7 @@ rm -f cf-cli.tgz || true
 
 # push app
 ./cf push iRcollector -f manifest.yml \
+  --var loggly_token=${LOGGLY_TOKEN} \
   --var ir_username=${IR_USERNAME} --var ir_password=${IR_PASSWORD} \
   --var auth_username=${AUTH_USERNAME} --var auth_password=${AUTH_PASSWORD}
 sleep 5
