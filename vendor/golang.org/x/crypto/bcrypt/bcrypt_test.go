@@ -209,35 +209,18 @@ func TestMinorNotRequired(t *testing.T) {
 func BenchmarkEqual(b *testing.B) {
 	b.StopTimer()
 	passwd := []byte("somepasswordyoulike")
-	hash, _ := GenerateFromPassword(passwd, DefaultCost)
+	hash, _ := GenerateFromPassword(passwd, 10)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		CompareHashAndPassword(hash, passwd)
 	}
 }
 
-func BenchmarkDefaultCost(b *testing.B) {
+func BenchmarkGeneration(b *testing.B) {
 	b.StopTimer()
 	passwd := []byte("mylongpassword1234")
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		GenerateFromPassword(passwd, DefaultCost)
-	}
-}
-
-// See Issue https://github.com/golang/go/issues/20425.
-func TestNoSideEffectsFromCompare(t *testing.T) {
-	source := []byte("passw0rd123456")
-	password := source[:len(source)-6]
-	token := source[len(source)-6:]
-	want := make([]byte, len(source))
-	copy(want, source)
-
-	wantHash := []byte("$2a$10$LK9XRuhNxHHCvjX3tdkRKei1QiCDUKrJRhZv7WWZPuQGRUM92rOUa")
-	_ = CompareHashAndPassword(wantHash, password)
-
-	got := bytes.Join([][]byte{password, token}, []byte(""))
-	if !bytes.Equal(got, want) {
-		t.Errorf("got=%q want=%q", got, want)
+		GenerateFromPassword(passwd, 10)
 	}
 }

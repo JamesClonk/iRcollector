@@ -23,6 +23,7 @@ applications:
 
   env:
     LOG_LEVEL: debug
+    LOGGLY_TOKEN: ((loggly_token))
     IR_USERNAME: ((ir_username))
     IR_PASSWORD: ((ir_password))
     AUTH_USERNAME: ((auth_username))

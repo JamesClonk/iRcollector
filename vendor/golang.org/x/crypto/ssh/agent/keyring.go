@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -19,7 +18,6 @@ import (
 type privKey struct {
 	signer  ssh.Signer
 	comment string
-	expire  *time.Time
 }
 
 type keyring struct {
@@ -50,9 +48,15 @@ func (r *keyring) RemoveAll() error {
 	return nil
 }
 
-// removeLocked does the actual key removal. The caller must already be holding the
-// keyring mutex.
-func (r *keyring) removeLocked(want []byte) error {
+// Remove removes all identities with the given public key.
+func (r *keyring) Remove(key ssh.PublicKey) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.locked {
+		return errLocked
+	}
+
+	want := key.Marshal()
 	found := false
 	for i := 0; i < len(r.keys); {
 		if bytes.Equal(r.keys[i].signer.PublicKey().Marshal(), want) {
@@ -71,18 +75,7 @@ func (r *keyring) removeLocked(want []byte) error {
 	return nil
 }
 
-// Remove removes all identities with the given public key.
-func (r *keyring) Remove(key ssh.PublicKey) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.locked {
-		return errLocked
-	}
-
-	return r.removeLocked(key.Marshal())
-}
-
-// Lock locks the agent. Sign and Remove will fail, and List will return an empty list.
+// Lock locks the agent. Sign and Remove will fail, and List will empty an empty list.
 func (r *keyring) Lock(passphrase []byte) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -102,24 +95,13 @@ func (r *keyring) Unlock(passphrase []byte) error {
 	if !r.locked {
 		return errors.New("agent: not locked")
 	}
-	if 1 != subtle.ConstantTimeCompare(passphrase, r.passphrase) {
+	if len(passphrase) != len(r.passphrase) || 1 != subtle.ConstantTimeCompare(passphrase, r.passphrase) {
 		return fmt.Errorf("agent: incorrect passphrase")
 	}
 
 	r.locked = false
 	r.passphrase = nil
 	return nil
-}
-
-// expireKeysLocked removes expired keys from the keyring. If a key was added
-// with a lifetimesecs contraint and seconds >= lifetimesecs seconds have
-// ellapsed, it is removed. The caller *must* be holding the keyring mutex.
-func (r *keyring) expireKeysLocked() {
-	for _, k := range r.keys {
-		if k.expire != nil && time.Now().After(*k.expire) {
-			r.removeLocked(k.signer.PublicKey().Marshal())
-		}
-	}
 }
 
 // List returns the identities known to the agent.
@@ -131,7 +113,6 @@ func (r *keyring) List() ([]*Key, error) {
 		return nil, nil
 	}
 
-	r.expireKeysLocked()
 	var ids []*Key
 	for _, k := range r.keys {
 		pub := k.signer.PublicKey()
@@ -165,55 +146,23 @@ func (r *keyring) Add(key AddedKey) error {
 		}
 	}
 
-	p := privKey{
-		signer:  signer,
-		comment: key.Comment,
-	}
-
-	if key.LifetimeSecs > 0 {
-		t := time.Now().Add(time.Duration(key.LifetimeSecs) * time.Second)
-		p.expire = &t
-	}
-
-	r.keys = append(r.keys, p)
+	r.keys = append(r.keys, privKey{signer, key.Comment})
 
 	return nil
 }
 
 // Sign returns a signature for the data.
 func (r *keyring) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error) {
-	return r.SignWithFlags(key, data, 0)
-}
-
-func (r *keyring) SignWithFlags(key ssh.PublicKey, data []byte, flags SignatureFlags) (*ssh.Signature, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.locked {
 		return nil, errLocked
 	}
 
-	r.expireKeysLocked()
 	wanted := key.Marshal()
 	for _, k := range r.keys {
 		if bytes.Equal(k.signer.PublicKey().Marshal(), wanted) {
-			if flags == 0 {
-				return k.signer.Sign(rand.Reader, data)
-			} else {
-				if algorithmSigner, ok := k.signer.(ssh.AlgorithmSigner); !ok {
-					return nil, fmt.Errorf("agent: signature does not support non-default signature algorithm: %T", k.signer)
-				} else {
-					var algorithm string
-					switch flags {
-					case SignatureFlagRsaSha256:
-						algorithm = ssh.SigAlgoRSASHA2256
-					case SignatureFlagRsaSha512:
-						algorithm = ssh.SigAlgoRSASHA2512
-					default:
-						return nil, fmt.Errorf("agent: unsupported signature flags: %d", flags)
-					}
-					return algorithmSigner.SignWithAlgorithm(rand.Reader, data, algorithm)
-				}
-			}
+			return k.signer.Sign(rand.Reader, data)
 		}
 	}
 	return nil, errors.New("not found")
@@ -227,15 +176,9 @@ func (r *keyring) Signers() ([]ssh.Signer, error) {
 		return nil, errLocked
 	}
 
-	r.expireKeysLocked()
 	s := make([]ssh.Signer, 0, len(r.keys))
 	for _, k := range r.keys {
 		s = append(s, k.signer)
 	}
 	return s, nil
-}
-
-// The keyring does not support any extensions
-func (r *keyring) Extension(extensionType string, contents []byte) ([]byte, error) {
-	return nil, ErrExtensionUnsupported
 }
