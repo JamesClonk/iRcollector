@@ -1068,7 +1068,6 @@ func (db *database) GetPointsBySeasonIDAndWeek(seasonID, week int) ([]Points, er
 			where rw.fk_season_id = $1
 			and rw.raceweek = $2
 			and rr.official = true
-			and r.laps_completed > 0
 			order by driver_id asc, champ_points desc
 		) x
 		join drivers d on (x.driver_id = d.pk_driver_id)
