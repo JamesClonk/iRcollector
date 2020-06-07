@@ -32,27 +32,28 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 			log.Debugf("Time ranking: %s", ranking)
 
 			// collect fastest TT laptime from TT subsession
-			ttFastestLap := 0
+			ttFastestLap := database.Laptime(0)
 			if ranking.TimeTrialSubsessionID > 0 {
 				// check if this particular TT ranking already exists and does not need an update
 				tr, err := c.db.GetTimeRankingByRaceWeekDriverAndCar(raceweek.RaceWeekID, ranking.DriverID, ranking.CarID)
 				if err == nil && tr.TimeTrialFastestLap > 0 && tr.TimeTrialSubsessionID > 0 &&
 					tr.TimeTrial.Seconds() == database.Laptime(ranking.TimeTrialTime.Laptime()).Seconds() {
-					log.Infof("Existing time ranking found, no need for update: %s", tr)
-					continue
-				}
-
-				ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
-				if err != nil {
-					log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
-				}
-				//log.Debugf("Result: %v", result)
-				if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
-					log.Errorf("invalid time trial result: %v", ttResult)
-				}
-				for _, row := range ttResult.Rows {
-					if row.RacerID == ranking.DriverID {
-						ttFastestLap = int(row.BestLaptime)
+					log.Infof("Existing time trial fastest lap found, no need for querying it again: %s", tr)
+					ttFastestLap = tr.TimeTrialFastestLap
+				} else {
+					ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
+					if err != nil {
+						log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
+					}
+					//log.Debugf("Result: %v", result)
+					if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
+						log.Errorf("invalid time trial result: %v", ttResult)
+					} else {
+						for _, row := range ttResult.Rows {
+							if row.RacerID == ranking.DriverID {
+								ttFastestLap = database.Laptime(int(row.BestLaptime))
+							}
+						}
 					}
 				}
 			}
@@ -69,7 +70,7 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				RaceWeek:              raceweek,
 				Car:                   car,
 				TimeTrialSubsessionID: ranking.TimeTrialSubsessionID,
-				TimeTrialFastestLap:   database.Laptime(ttFastestLap),
+				TimeTrialFastestLap:   ttFastestLap,
 				TimeTrial:             database.Laptime(ranking.TimeTrialTime.Laptime()),
 				Race:                  database.Laptime(ranking.RaceTime.Laptime()),
 				LicenseClass:          ranking.LicenseClass.String(),
