@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS series (
 INSERT INTO series (name, short_name, regex)
 VALUES ('iRacing Formula 3.5 Championship', 'iRacing Formula 3.5 Championship', 'Formula 3\.5');
 INSERT INTO series (name, short_name, regex)
-VALUES ('Pro Mazda Championship', 'Pro Mazda Championship', 'Pro Mazda');
+VALUES ('Indy Pro 2000 Championship', 'Indy Pro 2000 Championship', 'Indy Pro 2000');
 
 -- tracks
 CREATE TABLE IF NOT EXISTS tracks (

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -69,6 +70,10 @@ func (c *Client) GetSessionResult(subsessionID int) (SessionResult, error) {
 	data, err := c.Get(fmt.Sprintf("https://members.iracing.com/membersite/member/GetSubsessionResults?subsessionID=%d", subsessionID))
 	if err != nil {
 		return SessionResult{}, err
+	}
+
+	if string(data) == "[]" {
+		return SessionResult{}, errors.New("empty session result")
 	}
 
 	var result SessionResult
