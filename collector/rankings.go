@@ -43,15 +43,19 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				} else {
 					ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
 					if err != nil {
-						log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
-					}
-					//log.Debugf("Result: %v", result)
-					if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
-						log.Errorf("invalid time trial result: %v", ttResult)
+						if err.Error() == "empty session result" {
+							log.Debugf("received an empty time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
+						} else {
+							log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
+						}
 					} else {
-						for _, row := range ttResult.Rows {
-							if row.RacerID == ranking.DriverID {
-								ttFastestLap = database.Laptime(int(row.BestLaptime))
+						if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
+							log.Errorf("invalid time trial result: %v", ttResult)
+						} else {
+							for _, row := range ttResult.Rows {
+								if row.RacerID == ranking.DriverID {
+									ttFastestLap = database.Laptime(int(row.BestLaptime))
+								}
 							}
 						}
 					}
