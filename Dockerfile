@@ -18,11 +18,13 @@ RUN useradd -u 2000 -mU -s /bin/bash vcap && \
   mkdir /home/vcap/app && \
   chown vcap:vcap /home/vcap/app && \
   ln -s /home/vcap/app /app
-USER vcap
 
 WORKDIR /app
 COPY ircollector ./
 COPY database/migrations ./database/migrations/
+RUN chown vcap:vcap -R /home/vcap/app
+
+USER vcap
 
 EXPOSE 8080
 
