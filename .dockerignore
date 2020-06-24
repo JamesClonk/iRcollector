@@ -1,0 +1,15 @@
+.env_*
+.git
+.gitmodules
+.gitignore
+.goplayrc
+.travis.yml
+.circleci
+cf
+gin-bin
+Makefile
+Dockerfile
+LICENSE
+NOTICE
+_fixtures
+vendor

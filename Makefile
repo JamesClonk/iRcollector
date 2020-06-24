@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := run
 SHELL := /bin/bash
-APP ?= $(shell basename $$(pwd))
-COMMIT_SHA = $(shell git rev-parse --short HEAD)
+APP ?= $(shell basename $$(pwd) | tr '[:upper:]' '[:lower:]')
+COMMIT_SHA = $(shell git rev-parse HEAD)
 
 .PHONY: help
 ## help: prints this help message
@@ -48,15 +48,9 @@ push: test build
 	cf push
 
 .PHONY: setup
-## setup: downloads glide and gin
+## setup: downloads gin
 setup:
 	go get -v -u github.com/codegangsta/gin
-	go get -v -u github.com/Masterminds/glide
-
-.PHONY: glide
-## glide: runs glide install
-glide:
-	glide install --force
 
 .PHONY: db
 ## db: runs postgres backend on docker
@@ -89,3 +83,32 @@ docker-cleanup:
 ## connect: connects to postgres backend with CLI
 connect:
 	docker exec -it ircollector_db psql -U dev-user -d ircollector_db
+
+########################################################################################################################
+####### docker/kubernetes related stuff ################################################################################
+########################################################################################################################
+.PHONY: image-login
+## image-login: login to docker hub
+image-login:
+	@export PATH="$$HOME/bin:$$PATH"
+	@echo $$DOCKER_PASS | docker login -u $$DOCKER_USER --password-stdin
+
+.PHONY: image-build
+## image-build: build docker image
+image-build: build
+	@export PATH="$$HOME/bin:$$PATH"
+	docker build -t jamesclonk/${APP}:${COMMIT_SHA} .
+
+.PHONY: image-publish
+## image-publish: build and publish docker image
+image-publish:
+	@export PATH="$$HOME/bin:$$PATH"
+	docker push jamesclonk/${APP}:${COMMIT_SHA}
+	docker tag jamesclonk/${APP}:${COMMIT_SHA} jamesclonk/${APP}:latest
+	docker push jamesclonk/${APP}:latest
+
+.PHONY: image-run
+## image-run: run docker image
+image-run:
+	@export PATH="$$HOME/bin:$$PATH"
+	docker run --rm --env-file .dockerenv -p 9090:9090 jamesclonk/${APP}:${COMMIT_SHA}
