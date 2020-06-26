@@ -36,6 +36,11 @@ func (c *Collector) Database() database.Database {
 func (c *Collector) Run() {
 	seasonrx := regexp.MustCompile(`20[1-5][0-9] Season [1-4]`) // "2019 Season 2"
 
+	// update tracks
+	c.CollectTracks()
+	// update cars
+	c.CollectCars()
+
 	forceUpdate := false
 	forceUpdateCounter := 0
 	for {
@@ -45,11 +50,11 @@ func (c *Collector) Run() {
 			log.Fatalf("%v", err)
 		}
 
-		// update tracks
-		c.CollectTracks()
-
-		// update cars
-		c.CollectCars()
+		// update tracks and cars only once in a while
+		if forceUpdate {
+			c.CollectTracks()
+			c.CollectCars()
+		}
 
 		// fetch all current seasons and go through them
 		seasons, err := c.client.GetCurrentSeasons()
