@@ -22,8 +22,8 @@ func NewAdapter() (adapter Adapter) {
 	// check for VCAP_SERVICES first
 	vcap, err := cfenv.Current()
 	if err != nil {
-		log.Errorln("could not parse VCAP environment variables")
-		log.Errorf("%v", err)
+		log.Warnln("could not parse VCAP environment variables")
+		log.Warnf("%v", err)
 	} else {
 		service, err := vcap.Services.WithName("ircollector_db")
 		if err != nil {
