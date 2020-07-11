@@ -52,6 +52,7 @@ func router(c *collector.Collector) *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix("/health").HandlerFunc(showHealth)
 
+	r.HandleFunc("/series", showSeries(c)).Methods("GET")
 	r.HandleFunc("/seasons", showSeasons(c)).Methods("GET")
 	r.HandleFunc("/season/{seasonID}", collectSeason(c)).Methods("POST", "PUT")
 	r.HandleFunc("/season/{seasonID}/week/{week}", collectWeek(c)).Methods("POST", "PUT")
@@ -64,13 +65,38 @@ func router(c *collector.Collector) *mux.Router {
 func failure(rw http.ResponseWriter, req *http.Request, err error) {
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(500)
-	rw.Write([]byte(fmt.Sprintf(`{ "error": "%v" }`, err.Error())))
+	_, _ = rw.Write([]byte(fmt.Sprintf(`{ "error": "%v" }`, err.Error())))
 }
 
 func showHealth(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(200)
-	rw.Write([]byte(`{ "status": "ok" }`))
+	_, _ = rw.Write([]byte(`{ "status": "ok" }`))
+}
+
+func showSeries(c *collector.Collector) func(rw http.ResponseWriter, req *http.Request) {
+	return func(rw http.ResponseWriter, req *http.Request) {
+		series, err := c.Database().GetSeries()
+		if err != nil {
+			failure(rw, req, err)
+			return
+		}
+
+		seriesTmpl := `[
+{{ range . }}  { "pk_series_id": {{ .SeriesID }}, "name": "{{ .SeriesName }}", "short_name": "{{ .SeriesNameShort }}", "regex": "{{ .SeriesRegex }}" },
+{{ end }}]`
+		serie := template.Must(template.New("result").Parse(seriesTmpl))
+		var buf bytes.Buffer
+		if err := serie.Execute(&buf, series); err != nil {
+			log.Errorf("could not parse result template: %v", err)
+			failure(rw, req, err)
+			return
+		}
+
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
+		_, _ = rw.Write(buf.Bytes())
+	}
 }
 
 func collectSeason(c *collector.Collector) func(rw http.ResponseWriter, req *http.Request) {
@@ -90,7 +116,7 @@ func collectSeason(c *collector.Collector) func(rw http.ResponseWriter, req *htt
 		go c.CollectSeason(seasonID)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
-		rw.Write([]byte(`{ "season": "` + vars["seasonID"] + `" }`))
+		_, _ = rw.Write([]byte(`{ "season": "` + vars["seasonID"] + `" }`))
 	}
 }
 
@@ -106,9 +132,9 @@ func showSeasons(c *collector.Collector) func(rw http.ResponseWriter, req *http.
 			return
 		}
 
-		seasonTmpl := `{[
+		seasonTmpl := `[
 {{ range . }}  { "pk_season_id": {{ .SeasonID }}, "year": {{ .Year }}, "quarter": {{ .Quarter }}, "name": "{{ .SeasonName }}", "category": "{{ .Category}}" },
-{{ end }}]}`
+{{ end }}]`
 		season := template.Must(template.New("result").Parse(seasonTmpl))
 		var buf bytes.Buffer
 		if err := season.Execute(&buf, seasons); err != nil {
@@ -119,7 +145,7 @@ func showSeasons(c *collector.Collector) func(rw http.ResponseWriter, req *http.
 
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
-		rw.Write(buf.Bytes())
+		_, _ = rw.Write(buf.Bytes())
 	}
 }
 
@@ -146,7 +172,7 @@ func collectWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.
 		go c.CollectRaceWeek(seasonID, week, true)
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
-		rw.Write([]byte(`{ "season": "` + vars["seasonID"] + `", "week": "` + vars["week"] + `" }`))
+		_, _ = rw.Write([]byte(`{ "season": "` + vars["seasonID"] + `", "week": "` + vars["week"] + `" }`))
 	}
 }
 
@@ -176,9 +202,9 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 			return
 		}
 
-		resultTmpl := `{[
+		resultTmpl := `[
 {{ range . }}  { "fk_raceweek_id": {{ .RaceWeekID }}, "startime": "{{ .StartTime }}", "subsession_id": {{ .SubsessionID }}, "official": {{ .Official }}, "size": {{ .SizeOfField}}, "sof": {{ .StrengthOfField}} },
-{{ end }}]}`
+{{ end }}]`
 		result := template.Must(template.New("result").Parse(resultTmpl))
 		var resultsBuf bytes.Buffer
 		if err := result.Execute(&resultsBuf, results); err != nil {
@@ -193,9 +219,9 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 			return
 		}
 
-		rankingTmpl := `,{[
+		rankingTmpl := `,[
 {{ range . }}  { "driver": "{{ .Driver.Name }}", "car": "{{ .Car.Name }}", "race": "{{ .Race }}", "time_trial": "{{ .TimeTrial }}", "irating": {{ .IRating }}, "license_class": "{{ .LicenseClass}}" },
-{{ end }}]}`
+{{ end }}]`
 		ranking := template.Must(template.New("ranking").Parse(rankingTmpl))
 		var rankingsBuf bytes.Buffer
 		if err := ranking.Execute(&rankingsBuf, rankings); err != nil {
@@ -210,9 +236,9 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 			return
 		}
 
-		summaryTmpl := `,{[
+		summaryTmpl := `,[
 {{ range . }}  { "driver": "{{ .Driver.Name }}", "ir_gained": {{ .TotalIRatingGain }}, "sr_gained": {{ .TotalSafetyRatingGain }}, "poles": {{ .Poles }}, "top5": {{ .Top5 }}, "champ_points": {{ .HighestChampPoints }}, "club_points": {{ .TotalClubPoints }}, "nof_races": {{ .NumberOfRaces }} },
-{{ end }}]}`
+{{ end }}]`
 		summary := template.Must(template.New("summary").Parse(summaryTmpl))
 		var summariesBuf bytes.Buffer
 		if err := summary.Execute(&summariesBuf, summaries); err != nil {
@@ -223,9 +249,9 @@ func showWeek(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
-		rw.Write(resultsBuf.Bytes())
-		rw.Write(rankingsBuf.Bytes())
-		rw.Write(summariesBuf.Bytes())
+		_, _ = rw.Write(resultsBuf.Bytes())
+		_, _ = rw.Write(rankingsBuf.Bytes())
+		_, _ = rw.Write(summariesBuf.Bytes())
 	}
 }
 
@@ -285,7 +311,7 @@ func showRace(c *collector.Collector) func(rw http.ResponseWriter, req *http.Req
 
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
-		rw.Write(buf.Bytes())
+		_, _ = rw.Write(buf.Bytes())
 	}
 }
 
@@ -294,7 +320,7 @@ func verifyBasicAuth(rw http.ResponseWriter, req *http.Request) bool {
 	if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pw), []byte(password)) != 1 {
 		rw.Header().Set("WWW-Authenticate", `Basic realm="iRcollector"`)
 		rw.WriteHeader(401)
-		rw.Write([]byte("Unauthorized"))
+		_, _ = rw.Write([]byte("Unauthorized"))
 		return false
 	}
 	return true
