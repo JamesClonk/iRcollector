@@ -7,7 +7,7 @@ RUN echo "debconf debconf/frontend select noninteractive" | debconf-set-selectio
   export DEBIAN_FRONTEND=noninteractive && \
   apt-get -y $package_args update && \
   apt-get -y $package_args dist-upgrade && \
-  apt-get -y $package_args install ca-certificates tzdata && \
+  apt-get -y $package_args install curl ca-certificates tzdata && \
   apt-get clean && \
   find /usr/share/doc/*/* ! -name copyright | xargs rm -rf && \
   rm -rf \
