@@ -8,6 +8,15 @@ import (
 	"github.com/JamesClonk/iRcollector/api"
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	collectorErrors = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "ircollector_errors_total",
+		Help: "Total errors from iRcollector, should be a rate of 0.",
+	})
 )
 
 type Collector struct {
@@ -19,13 +28,6 @@ func New(db database.Database) *Collector {
 	return &Collector{
 		client: api.New(),
 		db:     db,
-	}
-}
-
-func (c *Collector) LoginClient() {
-	if err := c.client.Login(); err != nil {
-		log.Errorln("api client login failure")
-		log.Fatalf("%v", err)
 	}
 }
 
@@ -85,10 +87,12 @@ func (c *Collector) Run() {
 							var err error
 							year, err = strconv.Atoi(season.SeasonNameShort[0:4])
 							if err != nil {
+								collectorErrors.Inc()
 								log.Errorf("could not convert SeasonNameShort [%s] to year: %v", season.SeasonNameShort, err)
 							}
 							quarter, err = strconv.Atoi(season.SeasonNameShort[12:13])
 							if err != nil {
+								collectorErrors.Inc()
 								log.Errorf("could not convert SeasonNameShort [%s] to quarter: %v", season.SeasonNameShort, err)
 							}
 						}
@@ -119,6 +123,7 @@ func (c *Collector) Run() {
 						s.LogoImage = season.LogoImage
 						s.StartDate = startDate
 						if err := c.db.UpsertSeason(s); err != nil {
+							collectorErrors.Inc()
 							log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
 						}
 					}
@@ -133,6 +138,7 @@ func (c *Collector) Run() {
 						// find previous season
 						ss, err := c.db.GetSeasonsBySeriesID(series.SeriesID)
 						if err != nil {
+							log.Errorln("could not read seasons from database")
 							log.Fatalf("%v", err)
 						}
 						for _, s := range ss {

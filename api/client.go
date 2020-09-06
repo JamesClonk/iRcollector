@@ -12,6 +12,23 @@ import (
 
 	"github.com/JamesClonk/iRcollector/env"
 	"github.com/JamesClonk/iRcollector/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	clientLoginError = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "ircollector_api_client_login_error_total",
+		Help: "Total number of iRcollector API client login errors.",
+	})
+	clientRequestError = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "ircollector_api_client_request_error_total",
+		Help: "Total number of iRcollector API client request errors.",
+	})
+	clientRequestTotal = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "ircollector_api_client_request_total",
+		Help: "Total number of iRcollector API client request.",
+	})
 )
 
 type Client struct {
@@ -98,6 +115,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	// relogin if needed
 	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
 		if err := c.Login(); err != nil {
+			clientLoginError.Inc()
 			return nil, err
 		}
 	}
@@ -120,17 +138,21 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		clientRequestError.Inc()
 		return nil, fmt.Errorf("failed request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		clientRequestError.Inc()
 		return nil, fmt.Errorf("status code: %v", resp.StatusCode)
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		clientRequestError.Inc()
 		return nil, fmt.Errorf("read body: %v", err)
 	}
+	clientRequestTotal.Inc()
 	return data, nil
 }

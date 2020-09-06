@@ -3,6 +3,15 @@ package collector
 import (
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	numOfCars = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "ircollector_cars_total",
+		Help: "Total number of cars known.",
+	})
 )
 
 func (c *Collector) CollectCars() {
@@ -10,8 +19,12 @@ func (c *Collector) CollectCars() {
 
 	cars, err := c.client.GetCars()
 	if err != nil {
-		log.Fatalf("%v", err)
+		collectorErrors.Inc()
+		log.Errorf("%v", err)
+		return
 	}
+
+	numOfCars.Set(float64(len(cars)))
 	for _, car := range cars {
 		log.Debugf("Car: %s", car)
 
@@ -27,6 +40,7 @@ func (c *Collector) CollectCars() {
 			CarImage:    car.CarImage,
 		}
 		if err := c.db.UpsertCar(cr); err != nil {
+			collectorErrors.Inc()
 			log.Errorf("could not store car [%s] in database: %v", car.Name, err)
 			continue
 		}

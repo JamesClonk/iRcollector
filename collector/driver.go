@@ -11,6 +11,7 @@ func (c *Collector) UpsertDriverAndClub(driverName, clubName string, driverID, c
 		Name:   clubName,
 	}
 	if err := c.db.UpsertClub(club); err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not store club [%s] in database: %v", club.Name, err)
 		return database.Driver{}, false
 	}
@@ -20,6 +21,7 @@ func (c *Collector) UpsertDriverAndClub(driverName, clubName string, driverID, c
 		Club:     club,
 	}
 	if err := c.db.UpsertDriver(driver); err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not store driver [%s] in database: %v", driver.Name, err)
 		return database.Driver{}, false
 	}

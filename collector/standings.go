@@ -10,6 +10,7 @@ func (c *Collector) CollectTTResults(raceweek database.RaceWeek) {
 
 	carIDs, err := c.db.GetCarClassIDsByRaceWeekID(raceweek.RaceWeekID)
 	if err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not get car classes [raceweek_id:%d] from database: %v", raceweek.RaceWeekID, err)
 		return
 	}
@@ -17,6 +18,7 @@ func (c *Collector) CollectTTResults(raceweek database.RaceWeek) {
 	for _, carClassID := range carIDs {
 		results, err := c.client.GetTimeTrialResults(raceweek.SeasonID, carClassID, raceweek.RaceWeek+1)
 		if err != nil {
+			collectorErrors.Inc()
 			log.Errorf("could not get time trial results for car [car_class_id:%d]: %v", carClassID, err)
 			return
 		}
@@ -44,6 +46,7 @@ func (c *Collector) CollectTTResults(raceweek database.RaceWeek) {
 				Division:   result.Division,
 			}
 			if err := c.db.UpsertTimeTrialResult(ttr); err != nil {
+				collectorErrors.Inc()
 				log.Errorf("could not store time trial result of [%s] in database: %v", result.DriverName, err)
 				continue
 			}

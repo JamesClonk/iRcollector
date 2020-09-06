@@ -13,6 +13,7 @@ func (c *Collector) CollectTimeslots(seasonID int, results []api.RaceWeekResult)
 
 	season, err := c.db.GetSeasonByID(seasonID)
 	if err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not get season [%d] from database: %v", seasonID, err)
 		return
 	}
@@ -45,6 +46,7 @@ func (c *Collector) CollectTimeslots(seasonID int, results []api.RaceWeekResult)
 		// collect minute mark
 		minute := results[0].StartTime.Minute()
 		if minute != results[1].StartTime.Minute() {
+			collectorErrors.Inc()
 			log.Errorf("something fishy is going on, starttimes are not on a repeating timeslot: [%v] vs. [%s]", results[0].StartTime, results[1].StartTime)
 			return
 		}
@@ -55,6 +57,7 @@ func (c *Collector) CollectTimeslots(seasonID int, results []api.RaceWeekResult)
 		// update season with timeslot information
 		season.Timeslots = fmt.Sprintf("%d %d-23/%d * * *", minute, startingHour, hourlyInterval)
 		if err := c.db.UpsertSeason(season); err != nil {
+			collectorErrors.Inc()
 			log.Errorf("could not update season [%s] in database: %v", season.SeasonName, err)
 		}
 	}
