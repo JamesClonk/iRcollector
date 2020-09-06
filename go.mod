@@ -18,9 +18,10 @@ require (
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/client_golang v1.7.1
 	github.com/sebest/logrusly v0.0.0-20180315190218-3235eccb8edc
 	github.com/segmentio/go-loggly v0.5.1-0.20180728234623-7a70408c3650 // indirect
-	github.com/sirupsen/logrus v1.4.1
-	github.com/stretchr/testify v1.2.2
+	github.com/sirupsen/logrus v1.4.2
+	github.com/stretchr/testify v1.4.0
 	google.golang.org/appengine v1.6.6 // indirect
 )

@@ -12,12 +12,14 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 
 	season, err := c.db.GetSeasonByID(raceweek.SeasonID)
 	if err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not get season [%d] from database: %v", raceweek.SeasonID, err)
 		return
 	}
 
 	cars, err := c.db.GetCarsByRaceWeekID(raceweek.RaceWeekID)
 	if err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not get cars [raceweek_id:%d] from database: %v", raceweek.RaceWeekID, err)
 		return
 	}
@@ -25,6 +27,7 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 	for _, car := range cars {
 		rankings, err := c.client.GetTimeRankings(season.Year, season.Quarter, car.CarID, raceweek.TrackID)
 		if err != nil {
+			collectorErrors.Inc()
 			log.Errorf("could not get time rankings for car [%s]: %v", car.Name, err)
 			return
 		}
@@ -81,6 +84,7 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				IRating:               ranking.IRating,
 			}
 			if err := c.db.UpsertTimeRanking(t); err != nil {
+				collectorErrors.Inc()
 				log.Errorf("could not store time ranking of [%s] in database: %v", ranking.DriverName, err)
 				continue
 			}

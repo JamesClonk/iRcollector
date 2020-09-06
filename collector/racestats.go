@@ -25,11 +25,13 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 	// collect race result
 	result, err := c.client.GetSessionResult(rws.SubsessionID)
 	if err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not get race result [subsessionID:%d]: %v", rws.SubsessionID, err)
 		return
 	}
 	//log.Debugf("Result: %v", result)
 	if result.Laps <= 0 { // skip invalid race results
+		collectorErrors.Inc()
 		log.Errorf("invalid race result: %v", result)
 		return
 	}
@@ -51,10 +53,12 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 	}
 	racestats, err := c.db.InsertRaceStats(stats)
 	if err != nil {
+		collectorErrors.Inc()
 		log.Errorf("could not store race stats [%s] in database: %v", stats, err)
 		return
 	}
 	if racestats.SubsessionID <= 0 {
+		collectorErrors.Inc()
 		log.Errorf("empty race stats: %s", stats)
 		return
 	}
@@ -112,6 +116,7 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 		}
 		result, err := c.db.InsertRaceResult(rr)
 		if err != nil {
+			collectorErrors.Inc()
 			log.Errorf("could not store race result [subsessionID:%d] for driver [%s] in database: %v", result.SubsessionID, driver.Name, err)
 			continue
 		}

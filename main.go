@@ -14,6 +14,7 @@ import (
 	"github.com/JamesClonk/iRcollector/env"
 	"github.com/JamesClonk/iRcollector/log"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -51,6 +52,7 @@ func main() {
 func router(c *collector.Collector) *mux.Router {
 	r := mux.NewRouter()
 	r.PathPrefix("/health").HandlerFunc(showHealth)
+	r.PathPrefix("/metrics").Handler(promhttp.Handler())
 
 	r.HandleFunc("/series", showSeries(c)).Methods("GET")
 	r.HandleFunc("/seasons", showSeasons(c)).Methods("GET")
