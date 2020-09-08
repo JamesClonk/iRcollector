@@ -41,6 +41,7 @@ type Database interface {
 	GetRaceResultsBySubsessionID(int) ([]RaceResult, error)
 	GetRaceResultsBySeasonIDAndWeek(int, int) ([]RaceResult, error)
 	GetPointsBySeasonIDAndWeek(int, int) ([]Points, error)
+	GetPointsBySeasonIDAndWeekAndTrackCategory(int, int, string) ([]Points, error)
 	GetDriverSummariesBySeasonIDAndWeek(int, int) ([]Summary, error)
 	GetClubByID(int) (Club, error)
 	GetDriverByID(int) (Driver, error)
@@ -1073,6 +1074,53 @@ func (db *database) GetPointsBySeasonIDAndWeek(seasonID, week int) ([]Points, er
 		join drivers d on (x.driver_id = d.pk_driver_id)
 		join clubs c on (d.fk_club_id = c.pk_club_id)
 		order by driver_name asc, champ_points desc`, seasonID, week)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		p := Points{}
+		if err := rows.Scan(
+			&p.SubsessionID,
+			&p.Driver.Club.ClubID, &p.Driver.Club.Name, &p.Driver.DriverID, &p.Driver.Name,
+			&p.ChampPoints,
+		); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+	}
+	return points, nil
+}
+
+func (db *database) GetPointsBySeasonIDAndWeekAndTrackCategory(seasonID, week int, category string) ([]Points, error) {
+	points := make([]Points, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			x.subsession_id,
+			c.pk_club_id,
+			c.name as club_name,
+			x.driver_id,
+			d.name as driver_name,
+			x.champ_points
+		from (
+			select distinct
+				r.fk_subsession_id as subsession_id,
+				r.fk_driver_id as driver_id,
+				r.champpoints as champ_points
+			from race_results r
+				join raceweek_results rr on (rr.subsession_id = r.fk_subsession_id)
+				join raceweeks rw on (rw.pk_raceweek_id = rr.fk_raceweek_id)
+				join tracks tr on (tr.pk_track_id = rw.fk_track_id)
+			where rw.fk_season_id = $1
+			and rw.raceweek = $2
+			and tr.category = $3
+			and rr.official = true
+			order by driver_id asc, champ_points desc
+		) x
+		join drivers d on (x.driver_id = d.pk_driver_id)
+		join clubs c on (d.fk_club_id = c.pk_club_id)
+		order by driver_name asc, champ_points desc`, seasonID, week, category)
 	if err != nil {
 		return nil, err
 	}
