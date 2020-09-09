@@ -27,6 +27,7 @@ func (c *Client) GetCurrentSeasons() ([]Season, error) {
 
 			var season Season
 			if err := json.Unmarshal(jsonObject, &season); err != nil {
+				clientRequestError.Inc()
 				log.Errorf("could not parse series json object: %s", jsonObject)
 				return nil, err
 			}
