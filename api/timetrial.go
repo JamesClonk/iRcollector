@@ -16,11 +16,13 @@ func (c *Client) GetTimeTrialResults(seasonID, carID, raceweek int) ([]TimeTrial
 
 	// verify header "m" first, to make sure we still make correct assumptions about output format
 	if !strings.Contains(string(data), `{"m":{"1":"wins","2":"week","3":"rowcount","4":"dropped","5":"helmpattern","6":"maxlicenselevel","7":"clubid","8":"points","9":"division","10":"helmcolor3","11":"clubname","12":"helmcolor1","13":"displayname","14":"helmcolor2","15":"custid","16":"sublevel","17":"rank","18":"pos","19":"rn","20":"starts","21":"custrow"}`) {
+		clientRequestError.Inc()
 		return nil, fmt.Errorf("header format of [GetSeasonTTStandings] is not correct: %v", string(data))
 	}
 
 	var tmp map[string]interface{}
 	if err := json.Unmarshal(data, &tmp); err != nil {
+		clientRequestError.Inc()
 		return nil, err
 	}
 

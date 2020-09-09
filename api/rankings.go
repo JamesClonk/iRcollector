@@ -57,11 +57,13 @@ func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID, l
 
 	// verify header "m" first, to make sure we still make correct assumptions about output format
 	if !strings.Contains(string(data), `"m":{"1":"timetrial_subsessionid","2":"practice","3":"licenseclass","4":"irating","5":"trackid","6":"countrycode","7":"clubid","8":"practice_start_time","9":"carid","10":"catid","11":"race_subsessionid","12":"season_quarter","13":"practice_subsessionid","14":"licensegroup","15":"qualify","16":"custrow","17":"season_year","18":"race_start_time","19":"race","20":"rowcount","21":"qualify_start_time","22":"helmpattern","23":"licenselevel","24":"ttrating","25":"timetrial_start_time","26":"helmcolor3","27":"clubname","28":"helmcolor1","29":"displayname","30":"helmcolor2","31":"custid","32":"sublevel","33":"rn","34":"region","35":"category","36":"qualify_subsessionid","37":"timetrial"}`) {
+		clientRequestError.Inc()
 		return nil, fmt.Errorf("header format of [GetWorldRecords] is not correct: %v", string(data))
 	}
 
 	var tmp map[string]interface{}
 	if err := json.Unmarshal(data, &tmp); err != nil {
+		clientRequestError.Inc()
 		return nil, err
 	}
 

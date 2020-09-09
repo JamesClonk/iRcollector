@@ -31,6 +31,7 @@ func (c *Client) GetTracks() ([]Track, error) {
 
 			var track Track
 			if err := json.Unmarshal(jsonObject, &track); err != nil {
+				clientRequestError.Inc()
 				log.Errorf("could not parse track json object: %s", jsonObject)
 				return nil, err
 			}

@@ -27,6 +27,7 @@ func (c *Client) GetCars() ([]Car, error) {
 
 			var car Car
 			if err := json.Unmarshal(jsonObject, &car); err != nil {
+				clientRequestError.Inc()
 				log.Errorf("could not parse car json object: %s", jsonObject)
 				return nil, err
 			}

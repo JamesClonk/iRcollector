@@ -98,6 +98,7 @@ func (c *Client) Login() error {
 func (c *Client) Get(url string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		clientRequestError.Inc()
 		return nil, err
 	}
 	return c.doRequest(req)
@@ -106,6 +107,7 @@ func (c *Client) Get(url string) ([]byte, error) {
 func (c *Client) Post(url string, values url.Values) ([]byte, error) {
 	req, err := http.NewRequest("POST", url, strings.NewReader(values.Encode()))
 	if err != nil {
+		clientRequestError.Inc()
 		return nil, err
 	}
 	return c.doRequest(req)
