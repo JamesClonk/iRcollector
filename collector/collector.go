@@ -46,7 +46,7 @@ func (c *Collector) Run() {
 	forceUpdate := false
 	forceUpdateCounter := 0
 	for {
-		series, err := c.db.GetSeries()
+		series, err := c.db.GetActiveSeries()
 		if err != nil {
 			log.Errorln("could not read series information from database")
 			log.Fatalf("%v", err)
