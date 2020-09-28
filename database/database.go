@@ -10,6 +10,7 @@ import (
 
 type Database interface {
 	GetSeries() ([]Series, error)
+	GetActiveSeries() ([]Series, error)
 	GetSeasons() ([]Season, error)
 	GetSeasonsBySeriesID(int) ([]Season, error)
 	GetSeasonByID(int) (Season, error)
@@ -64,8 +65,26 @@ func (db *database) GetSeries() ([]Series, error) {
 			s.pk_series_id,
 			s.name,
 			s.short_name,
-			s.regex
+			s.regex,
+			s.active
 		from series s
+		order by s.name asc, s.short_name asc`); err != nil {
+		return nil, err
+	}
+	return series, nil
+}
+
+func (db *database) GetActiveSeries() ([]Series, error) {
+	series := make([]Series, 0)
+	if err := db.Select(&series, `
+		select
+			s.pk_series_id,
+			s.name,
+			s.short_name,
+			s.regex,
+			s.active
+		from series s
+		where s.active = 't'
 		order by s.name asc, s.short_name asc`); err != nil {
 		return nil, err
 	}

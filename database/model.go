@@ -10,6 +10,7 @@ type Series struct {
 	SeriesName      string `db:"name"`
 	SeriesNameShort string `db:"short_name"`
 	SeriesRegex     string `db:"regex"`
+	Active          string `db:"active"`
 }
 
 type Track struct {
