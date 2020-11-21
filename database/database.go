@@ -30,6 +30,8 @@ type Database interface {
 	UpdateRaceWeekLastUpdateToNow(int) error
 	GetRaceWeekByID(int) (RaceWeek, error)
 	GetRaceWeekBySeasonIDAndWeek(int, int) (RaceWeek, error)
+	GetRaceWeekMetricsBySeasonID(int) ([]RaceWeekMetrics, error)
+	GetRaceWeekMetricsBySeasonIDAndWeek(int, int) (RaceWeekMetrics, error)
 	InsertRaceWeekResult(RaceWeekResult) (RaceWeekResult, error)
 	GetRaceWeekResultBySubsessionID(int) (RaceWeekResult, error)
 	GetRaceWeekResultsBySeasonIDAndWeek(int, int) ([]RaceWeekResult, error)
@@ -740,6 +742,61 @@ func (db *database) GetRaceWeekResultsBySeasonIDAndWeek(seasonID, week int) ([]R
 		return nil, err
 	}
 	return results, nil
+}
+
+func (db *database) GetRaceWeekMetricsBySeasonID(seasonID int) ([]RaceWeekMetrics, error) {
+	results := make([]RaceWeekMetrics, 0)
+	if err := db.Select(&results, `
+		select
+			rw.fk_season_id as season_id,
+			rw.raceweek+1 as raceweek,
+			rs.simulated_starttime time_of_day,
+			max(rs.laps) as laps,
+			ceil(avg(rs.cautions)) as avg_cautions,
+			round(avg(rs.avg_laptime)) as avg_laptime,
+			min(tr.race) as fastest_laptime,
+			max(rwr.sof) as max_sof,
+			round(avg(rwr.sof)) as avg_sof,
+			round(avg(rwr.size)) as avg_size
+		from race_stats rs
+			join raceweek_results rwr on rwr.subsession_id = rs.fk_subsession_id
+			join raceweeks rw on rw.pk_raceweek_id = rwr.fk_raceweek_id
+			join time_rankings tr on tr.fk_raceweek_id = rw.pk_raceweek_id
+		where rw.fk_season_id = $1
+		and rwr.official = true
+		group by rw.fk_season_id, rw.raceweek, rs.simulated_starttime
+		order by rw.fk_season_id desc, rw.raceweek asc`, seasonID); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (db *database) GetRaceWeekMetricsBySeasonIDAndWeek(seasonID, week int) (RaceWeekMetrics, error) {
+	result := RaceWeekMetrics{}
+	if err := db.Get(&result, `
+		select
+			rw.fk_season_id as season_id,
+			rw.raceweek+1 as raceweek,
+			rs.simulated_starttime time_of_day,
+			max(rs.laps) as laps,
+			ceil(avg(rs.cautions)) as avg_cautions,
+			round(avg(rs.avg_laptime)) as avg_laptime,
+			min(tr.race) as fastest_laptime,
+			max(rwr.sof) as max_sof,
+			round(avg(rwr.sof)) as avg_sof,
+			round(avg(rwr.size)) as avg_size
+		from race_stats rs
+			join raceweek_results rwr on rwr.subsession_id = rs.fk_subsession_id
+			join raceweeks rw on rw.pk_raceweek_id = rwr.fk_raceweek_id
+			join time_rankings tr on tr.fk_raceweek_id = rw.pk_raceweek_id
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		and rwr.official = true
+		group by rw.fk_season_id, rw.raceweek, rs.simulated_starttime
+		order by rw.fk_season_id desc, rw.raceweek asc`, seasonID, week); err != nil {
+		return result, err
+	}
+	return result, nil
 }
 
 func (db *database) InsertRaceStats(racestats RaceStats) (RaceStats, error) {
