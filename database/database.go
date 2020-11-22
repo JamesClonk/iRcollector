@@ -756,6 +756,7 @@ func (db *database) GetRaceWeekMetricsBySeasonID(seasonID int) ([]RaceWeekMetric
 			round(avg(rs.avg_laptime)) as avg_laptime,
 			min(tr.race) as fastest_laptime,
 			max(rwr.sof) as max_sof,
+			min(rwr.sof) as min_sof,
 			round(avg(rwr.sof)) as avg_sof,
 			round(avg(rwr.size)) as avg_size
 		from race_stats rs
@@ -783,6 +784,7 @@ func (db *database) GetRaceWeekMetricsBySeasonIDAndWeek(seasonID, week int) (Rac
 			round(avg(rs.avg_laptime)) as avg_laptime,
 			min(tr.race) as fastest_laptime,
 			max(rwr.sof) as max_sof,
+			min(rwr.sof) as min_sof,
 			round(avg(rwr.sof)) as avg_sof,
 			round(avg(rwr.size)) as avg_size
 		from race_stats rs

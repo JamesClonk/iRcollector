@@ -88,6 +88,7 @@ type RaceWeekMetrics struct {
 	AvgLaptime     Laptime   `db:"avg_laptime"`
 	FastestLaptime Laptime   `db:"fastest_laptime"`
 	MaxSOF         int       `db:"max_sof"`
+	MinSOF         int       `db:"min_sof"`
 	AvgSOF         int       `db:"avg_sof"`
 	AvgSize        int       `db:"avg_size"`
 }
