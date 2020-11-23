@@ -37,6 +37,7 @@ type Database interface {
 	GetRaceWeekResultsBySeasonIDAndWeek(int, int) ([]RaceWeekResult, error)
 	InsertRaceStats(RaceStats) (RaceStats, error)
 	GetRaceStatsBySubsessionID(int) (RaceStats, error)
+	GetSeasonMetricsBySeriesID(int) ([]SeasonMetrics, error)
 	UpsertClub(Club) error
 	UpsertDriver(Driver) error
 	InsertRaceResult(RaceResult) (RaceResult, error)
@@ -846,6 +847,143 @@ func (db *database) GetRaceStatsBySubsessionID(subsessionID int) (RaceStats, err
 		return racestats, err
 	}
 	return racestats, nil
+}
+
+func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, error) {
+	results := make([]SeasonMetrics, 0)
+	if err := db.Select(&results, `
+		select
+			s.fk_series_id as series_id,
+			s.year,
+			s.quarter,
+			s.timeslots,
+			max(rw.raceweek+1) as weeks,
+			count(rwr.subsession_id) as nof_sessions,
+			round(avg(rwr.size)) as avg_size,
+			round(avg(rwr.sof)) as avg_sof,
+			(
+				select
+					count(d.pk_driver_id)
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+			) as nof_drivers,
+			(
+				select
+					count(distinct d.pk_driver_id)
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+			) as nof_unique_drivers,
+			(
+				select
+					count(distinct d.pk_driver_id)
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join tracks t on t.pk_track_id = rw.fk_track_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				and t.category = 'Road'
+			) as nof_unique_road_drivers,
+			(
+				select
+					count(distinct d.pk_driver_id)
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join tracks t on t.pk_track_id = rw.fk_track_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				and t.category = 'Oval'
+			) as nof_unique_oval_drivers,
+			(
+				select
+					count(distinct d.pk_driver_id)
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join tracks t on t.pk_track_id = rw.fk_track_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				and t.category = 'Oval'
+				and d.pk_driver_id in (
+					select distinct d.pk_driver_id
+					from seasons s2
+						join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+						join tracks t on t.pk_track_id = rw.fk_track_id
+						join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+						join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+						join drivers d on d.pk_driver_id = rr.fk_driver_id
+					where rwr.official = true
+					and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+					and t.category = 'Road'
+				)
+			) as nof_unique_both_drivers,
+			(select count(*) from (
+				select
+					distinct driver_id
+				from (
+				select distinct
+					d.pk_driver_id as driver_id,
+					rw.raceweek
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				group by d.pk_driver_id, rw.raceweek
+				order by 1 asc
+				) tmp
+				group by driver_id
+				having count(driver_id) >= 8
+			) tmp) as nof_unique_eight_weeks_drivers,
+			(select count(*) from (
+				select
+					distinct driver_id
+				from (
+				select distinct
+					d.pk_driver_id as driver_id,
+					rw.raceweek
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				group by d.pk_driver_id, rw.raceweek
+				order by 1 asc
+				) tmp
+				group by driver_id
+				having count(driver_id) >= 12
+			) tmp) as nof_unique_full_season_drivers
+		from seasons s
+			join raceweeks rw on rw.fk_season_id = s.pk_season_id
+			join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+		where rwr.official = true
+		and s.fk_series_id = $1
+		group by s.fk_series_id, s.year, s.quarter, s.timeslots
+		order by s.year asc, s.quarter asc`, seriesID); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func (db *database) UpsertClub(club Club) error {

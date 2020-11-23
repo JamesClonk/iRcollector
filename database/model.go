@@ -59,6 +59,24 @@ type Season struct {
 	StartDate       time.Time `db:"startdate"`
 }
 
+type SeasonMetrics struct {
+	SeriesID                int    `db:"series_id"` // foreign-key to Series.SeriesID
+	Year                    int    `db:"year"`
+	Quarter                 int    `db:"quarter"`
+	Timeslots               string `db:"timeslots"`
+	Weeks                   int    `db:"weeks"`
+	Sessions                int    `db:"nof_sessions"`
+	AvgSize                 int    `db:"avg_size"`
+	AvgSOF                  int    `db:"avg_sof"`
+	Drivers                 int    `db:"nof_drivers"`
+	UniqueDrivers           int    `db:"nof_unique_drivers"`
+	UniqueRoadDrivers       int    `db:"nof_unique_road_drivers"`
+	UniqueOvalDrivers       int    `db:"nof_unique_oval_drivers"`
+	UniqueBothDrivers       int    `db:"nof_unique_both_drivers"`
+	UniqueEightWeeksDrivers int    `db:"nof_unique_eight_weeks_drivers"`
+	UniqueFullSeasonDrivers int    `db:"nof_unique_full_season_drivers"`
+}
+
 type RaceWeek struct {
 	SeasonID   int       `db:"fk_season_id"` // foreign-key to Season.SeasonID
 	RaceWeekID int       `db:"pk_raceweek_id"`
