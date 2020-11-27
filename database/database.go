@@ -896,6 +896,38 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
 				and t.category = 'Road'
 			) as nof_unique_road_drivers,
+			(select count(*) from (
+				select
+					distinct driver_id
+				from (
+				select distinct
+					d.pk_driver_id as driver_id,
+					rw.raceweek
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				and d.pk_driver_id not in (
+					select distinct d.pk_driver_id
+					from seasons s2
+						join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+						join tracks t on t.pk_track_id = rw.fk_track_id
+						join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+						join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+						join drivers d on d.pk_driver_id = rr.fk_driver_id
+					where rwr.official = true
+					and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+					and t.category = 'Oval'
+				)
+				group by d.pk_driver_id, rw.raceweek
+				order by 1 asc
+				) tmp
+				group by driver_id
+				having count(driver_id) >= 6
+			) tmp) as nof_unique_committed_road_only_drivers,
 			(
 				select
 					count(distinct d.pk_driver_id)
@@ -909,6 +941,38 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
 				and t.category = 'Oval'
 			) as nof_unique_oval_drivers,
+			(select count(*) from (
+				select
+					distinct driver_id
+				from (
+				select distinct
+					d.pk_driver_id as driver_id,
+					rw.raceweek
+				from seasons s2
+					join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+					join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+					join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+					join drivers d on d.pk_driver_id = rr.fk_driver_id
+				where rwr.official = true
+				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+				and d.pk_driver_id not in (
+					select distinct d.pk_driver_id
+					from seasons s2
+						join raceweeks rw on rw.fk_season_id = s2.pk_season_id
+						join tracks t on t.pk_track_id = rw.fk_track_id
+						join raceweek_results rwr on rwr.fk_raceweek_id = rw.pk_raceweek_id
+						join race_results rr on rr.fk_subsession_id = rwr.subsession_id
+						join drivers d on d.pk_driver_id = rr.fk_driver_id
+					where rwr.official = true
+					and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
+					and t.category = 'Road'
+				)
+				group by d.pk_driver_id, rw.raceweek
+				order by 1 asc
+				) tmp
+				group by driver_id
+				having count(driver_id) >= 2
+			) tmp) as nof_unique_committed_oval_only_drivers,
 			(
 				select
 					count(distinct d.pk_driver_id)
