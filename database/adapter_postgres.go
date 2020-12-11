@@ -22,6 +22,9 @@ func newPostgresAdapter(uri string) *PostgresAdapter {
 	if err != nil {
 		panic(err)
 	}
+	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(5)
+
 	return &PostgresAdapter{
 		Database: db,
 		URI:      uri,
