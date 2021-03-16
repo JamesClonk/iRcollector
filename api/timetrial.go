@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-func (c *Client) GetTimeTrialResults(seasonID, carID, raceweek int) ([]TimeTrialResult, error) {
+func (c *Client) GetTimeTrialResults(seasonID, carClassID, raceweek int) ([]TimeTrialResult, error) {
 	data, err := c.Get(
 		fmt.Sprintf("https://members.iracing.com/memberstats/member/GetSeasonTTStandings?seasonid=%d&clubid=-1&carclassid=%d&raceweek=%d&division=-1&start=1&end=50&sort=points&order=desc",
-			seasonID, carID, raceweek))
+			seasonID, carClassID, raceweek))
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *Client) GetTimeTrialResults(seasonID, carID, raceweek int) ([]TimeTrial
 		result.DriverName = encodedString(row["13"].(string)) // displayname "The Dude"
 		result.ClubID = int(row["7"].(float64))               // clubid // 7
 		result.ClubName = encodedString(row["11"].(string))   // clubname // "Benelux"
-		result.CarID = carID
+		result.CarID = carClassID
 		result.Rank = int(row["17"].(float64))
 		result.Position = int(row["18"].(float64))
 		result.Points = int(row["8"].(float64))

@@ -56,7 +56,7 @@ func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID, l
 	}
 
 	// verify header "m" first, to make sure we still make correct assumptions about output format
-	if !strings.Contains(string(data), `"m":{"1":"timetrial_subsessionid","2":"practice","3":"licenseclass","4":"irating","5":"trackid","6":"countrycode","7":"clubid","8":"practice_start_time","9":"carid","10":"catid","11":"race_subsessionid","12":"season_quarter","13":"practice_subsessionid","14":"licensegroup","15":"qualify","16":"custrow","17":"season_year","18":"race_start_time","19":"race","20":"rowcount","21":"qualify_start_time","22":"helmpattern","23":"licenselevel","24":"ttrating","25":"timetrial_start_time","26":"helmcolor3","27":"clubname","28":"helmcolor1","29":"displayname","30":"helmcolor2","31":"custid","32":"sublevel","33":"rn","34":"region","35":"category","36":"qualify_subsessionid","37":"timetrial"}`) {
+	if !strings.Contains(string(data), `"m":{"1":"timetrial_subsessionid","2":"practice","3":"licenseclass","4":"irating","5":"trackid","6":"countrycode","7":"clubid","8":"practice_start_time","9":"helmhelmettype","10":"carid","11":"catid","12":"race_subsessionid","13":"season_quarter","14":"practice_subsessionid","15":"licensegroup","16":"qualify","17":"custrow","18":"season_year","19":"race_start_time","20":"race","21":"rowcount","22":"qualify_start_time","23":"helmpattern","24":"licenselevel","25":"ttrating","26":"timetrial_start_time","27":"helmcolor3","28":"clubname","29":"helmcolor1","30":"displayname","31":"helmcolor2","32":"custid","33":"sublevel","34":"helmfacetype","35":"rn","36":"region","37":"category","38":"qualify_subsessionid","39":"timetrial"}`) {
 		clientRequestError.Inc()
 		return nil, fmt.Errorf("header format of [GetWorldRecords] is not correct: %v", string(data))
 	}
@@ -73,14 +73,14 @@ func (c *Client) getTimeRankings(sort string, season, quarter, carID, trackID, l
 
 		// ugly json struct needs ugly code
 		var ranking TimeRanking
-		ranking.DriverID = int(row["31"].(float64))               // custid // 123
-		ranking.DriverName = encodedString(row["29"].(string))    // displayname "The Dude"
-		ranking.TimeTrialTime = encodedString(row["37"].(string)) // timetrial // "1:28.514"
-		ranking.RaceTime = encodedString(row["19"].(string))      // race // "1:27.992"
+		ranking.DriverID = int(row["32"].(float64))               // custid // 123
+		ranking.DriverName = encodedString(row["30"].(string))    // displayname "The Dude"
+		ranking.TimeTrialTime = encodedString(row["39"].(string)) // timetrial // "1:28.514"
+		ranking.RaceTime = encodedString(row["20"].(string))      // race // "1:27.992"
 		ranking.LicenseClass = encodedString(row["3"].(string))   // licenseclass // "A 2.39"
 		ranking.IRating = int(row["4"].(float64))                 // 4 // 1234
 		ranking.ClubID = int(row["7"].(float64))                  // clubid // 7
-		ranking.ClubName = encodedString(row["27"].(string))      // clubname // "Benelux"
+		ranking.ClubName = encodedString(row["28"].(string))      // clubname // "Benelux"
 		ranking.CarID = carID
 		ranking.TrackID = trackID
 		ranking.TimeTrialSubsessionID = -1
