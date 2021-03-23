@@ -140,6 +140,7 @@ type Club struct {
 type Driver struct {
 	DriverID int    `db:"pk_driver_id"`
 	Name     string `db:"name"`
+	Division int
 	Club     Club
 }
 
