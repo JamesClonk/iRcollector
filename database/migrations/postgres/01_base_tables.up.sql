@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS tracks (
     logo_image      TEXT NOT NULL,
     map_image       TEXT NOT NULL,
     config_image    TEXT NOT NULL,
-    CONSTRAINT uniq_track UNIQUE (name, config)
+    CONSTRAINT uniq_track UNIQUE (pk_track_id, name, config)
 );
 
 -- cars
