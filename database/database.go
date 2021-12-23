@@ -69,6 +69,7 @@ func (db *database) GetSeries() ([]Series, error) {
 			s.name,
 			s.short_name,
 			s.regex,
+			s.colorscheme,
 			s.active
 		from series s
 		order by s.name asc, s.short_name asc`); err != nil {
@@ -85,6 +86,7 @@ func (db *database) GetActiveSeries() ([]Series, error) {
 			s.name,
 			s.short_name,
 			s.regex,
+			s.colorscheme,
 			s.active
 		from series s
 		where s.active = 't'
@@ -109,8 +111,10 @@ func (db *database) GetSeasons() ([]Season, error) {
 			s.panel_image,
 			s.logo_image,
 			s.timeslots,
-			s.startdate
+			s.startdate,
+			ss.colorscheme as series_colorscheme
 		from seasons s
+			join series ss on (ss.pk_series_id = s.fk_series_id)
 		order by s.name asc, s.year desc, s.quarter desc`); err != nil {
 		return nil, err
 	}
@@ -132,9 +136,11 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 			s.panel_image,
 			s.logo_image,
 			s.timeslots,
-			s.startdate
+			s.startdate,
+			ss.colorscheme as series_colorscheme
 		from seasons s
 		where s.fk_series_id = $1
+			join series ss on (ss.pk_series_id = s.fk_series_id)
 		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
 		return nil, err
 	}
@@ -156,8 +162,10 @@ func (db *database) GetSeasonByID(seasonID int) (Season, error) {
 			s.panel_image,
 			s.logo_image,
 			s.timeslots,
-			s.startdate
+			s.startdate,
+			ss.colorscheme as series_colorscheme
 		from seasons s
+			join series ss on (ss.pk_series_id = s.fk_series_id)
 		where s.pk_season_id = $1`, seasonID); err != nil {
 		return season, err
 	}
