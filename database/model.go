@@ -144,6 +144,7 @@ type Driver struct {
 	Name     string `db:"name"`
 	Division int
 	Club     Club
+	Team     string `db:"team"`
 }
 
 type RaceResult struct {

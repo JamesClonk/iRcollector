@@ -47,6 +47,8 @@ type Database interface {
 	GetPointsBySeasonIDAndWeek(int, int) ([]Points, error)
 	GetPointsBySeasonIDAndWeekAndTrackCategory(int, int, string) ([]Points, error)
 	GetDriverSummariesBySeasonIDAndWeek(int, int) ([]Summary, error)
+	GetDriverSummariesBySeasonIDAndWeekAndTeam(int, int, string) ([]Summary, error)
+	GetDriverSummariesBySeasonIDAndTeam(int, string) ([]Summary, error)
 	GetClubByID(int) (Club, error)
 	GetDriverByID(int) (Driver, error)
 	GetTrackByID(int) (Track, error)
@@ -383,6 +385,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 		select distinct
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			cl.pk_club_id,
 			cl.name,
 			rw.pk_raceweek_id,
@@ -413,7 +416,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 	for rows.Next() {
 		r := TimeTrialResult{}
 		if err := rows.Scan(
-			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
+			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Team, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
 			&r.RaceWeek.RaceWeekID, &r.RaceWeek.RaceWeek, &r.RaceWeek.SeasonID, &r.RaceWeek.TrackID,
 			&r.CarClassID, &r.Rank, &r.Position, &r.Points, &r.Starts, &r.Wins, &r.Weeks, &r.Dropped, &r.Division,
 		); err != nil {
@@ -430,6 +433,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDWeekAndCarClass(seasonID, week,
 		select distinct
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			cl.pk_club_id,
 			cl.name,
 			rw.pk_raceweek_id,
@@ -461,7 +465,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDWeekAndCarClass(seasonID, week,
 	for rows.Next() {
 		r := TimeTrialResult{}
 		if err := rows.Scan(
-			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
+			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Team, &r.Driver.Club.ClubID, &r.Driver.Club.Name,
 			&r.RaceWeek.RaceWeekID, &r.RaceWeek.RaceWeek, &r.RaceWeek.SeasonID, &r.RaceWeek.TrackID,
 			&r.CarClassID, &r.Rank, &r.Position, &r.Points, &r.Starts, &r.Wins, &r.Weeks, &r.Dropped, &r.Division,
 		); err != nil {
@@ -520,6 +524,7 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 		select distinct
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			coalesce((select min(rr.division)
 				from race_results rr
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
@@ -557,7 +562,8 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 
 	t := TimeRanking{}
 	if err := row.Scan(
-		&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
+		&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team,
+		&t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 		&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
 		&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
 		&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
@@ -573,6 +579,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 		select distinct
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			coalesce((select min(rr.division)
 				from race_results rr
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
@@ -614,7 +621,8 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 	for rows.Next() {
 		t := TimeRanking{}
 		if err := rows.Scan(
-			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
+			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team,
+			&t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 			&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
 			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
 			&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
@@ -1164,6 +1172,7 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 			c.name,
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			r.division,
 			r.old_irating,
 			r.new_irating,
@@ -1198,7 +1207,9 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 			join clubs c on (d.fk_club_id = c.pk_club_id)
 		where r.fk_subsession_id = $1
 		and r.fk_driver_id = $2`, subsessionID, driverID).Scan(
-		&r.SubsessionID, &r.Driver.Club.ClubID, &r.Driver.Club.Name, &r.Driver.DriverID, &r.Driver.Name, &r.Driver.Division,
+		&r.SubsessionID,
+		&r.Driver.Club.ClubID, &r.Driver.Club.Name,
+		&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Team, &r.Driver.Division,
 		&r.IRatingBefore, &r.IRatingAfter, &r.LicenseLevelBefore, &r.LicenseLevelAfter,
 		&r.SafetyRatingBefore, &r.SafetyRatingAfter, &r.CPIBefore, &r.CPIAfter,
 		&r.LicenseGroup, &r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
@@ -1221,6 +1232,7 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 			c.name,
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			r.division,
 			r.old_irating,
 			r.new_irating,
@@ -1263,7 +1275,9 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 	for rows.Next() {
 		r := RaceResult{}
 		if err := rows.Scan(
-			&r.SubsessionID, &r.Driver.Club.ClubID, &r.Driver.Club.Name, &r.Driver.DriverID, &r.Driver.Name, &r.Driver.Division,
+			&r.SubsessionID,
+			&r.Driver.Club.ClubID, &r.Driver.Club.Name,
+			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Team, &r.Driver.Division,
 			&r.IRatingBefore, &r.IRatingAfter, &r.LicenseLevelBefore, &r.LicenseLevelAfter,
 			&r.SafetyRatingBefore, &r.SafetyRatingAfter, &r.CPIBefore, &r.CPIAfter,
 			&r.LicenseGroup, &r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
@@ -1288,6 +1302,7 @@ func (db *database) GetRaceResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceR
 			c.name,
 			d.pk_driver_id,
 			d.name,
+			d.team,
 			r.division,
 			r.old_irating,
 			r.new_irating,
@@ -1333,7 +1348,9 @@ func (db *database) GetRaceResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceR
 	for rows.Next() {
 		r := RaceResult{}
 		if err := rows.Scan(
-			&r.SubsessionID, &r.Driver.Club.ClubID, &r.Driver.Club.Name, &r.Driver.DriverID, &r.Driver.Name, &r.Driver.Division,
+			&r.SubsessionID,
+			&r.Driver.Club.ClubID, &r.Driver.Club.Name,
+			&r.Driver.DriverID, &r.Driver.Name, &r.Driver.Team, &r.Driver.Division,
 			&r.IRatingBefore, &r.IRatingAfter, &r.LicenseLevelBefore, &r.LicenseLevelAfter,
 			&r.SafetyRatingBefore, &r.SafetyRatingAfter, &r.CPIBefore, &r.CPIAfter,
 			&r.LicenseGroup, &r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
@@ -1358,6 +1375,7 @@ func (db *database) GetPointsBySeasonIDAndWeek(seasonID, week int) ([]Points, er
 			c.name as club_name,
 			x.driver_id,
 			d.name as driver_name,
+			d.team as driver_team,
 			coalesce(x.division,10)+1 as division,
 			x.champ_points
 		from (
@@ -1386,7 +1404,8 @@ func (db *database) GetPointsBySeasonIDAndWeek(seasonID, week int) ([]Points, er
 		p := Points{}
 		if err := rows.Scan(
 			&p.SubsessionID,
-			&p.Driver.Club.ClubID, &p.Driver.Club.Name, &p.Driver.DriverID, &p.Driver.Name, &p.Driver.Division,
+			&p.Driver.Club.ClubID, &p.Driver.Club.Name, &p.Driver.DriverID, &p.Driver.Name, &p.Driver.Team,
+			&p.Driver.Division,
 			&p.ChampPoints,
 		); err != nil {
 			return nil, err
@@ -1405,6 +1424,7 @@ func (db *database) GetPointsBySeasonIDAndWeekAndTrackCategory(seasonID, week in
 			c.name as club_name,
 			x.driver_id,
 			d.name as driver_name,
+			d.team as driver_team,
 			coalesce(x.division,10)+1 as division,
 			x.champ_points
 		from (
@@ -1435,7 +1455,8 @@ func (db *database) GetPointsBySeasonIDAndWeekAndTrackCategory(seasonID, week in
 		p := Points{}
 		if err := rows.Scan(
 			&p.SubsessionID,
-			&p.Driver.Club.ClubID, &p.Driver.Club.Name, &p.Driver.DriverID, &p.Driver.Name, &p.Driver.Division,
+			&p.Driver.Club.ClubID, &p.Driver.Club.Name, &p.Driver.DriverID, &p.Driver.Name, &p.Driver.Team,
+			&p.Driver.Division,
 			&p.ChampPoints,
 		); err != nil {
 			return nil, err
@@ -1453,6 +1474,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			c.name as club_name,
 			d.pk_driver_id,
 			d.name as driver_name,
+			d.team as driver_team,
 			r.division,
 			r.division,
 			max(r.new_irating - r.old_irating) as max_ir_gained,
@@ -1488,7 +1510,122 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 	for rows.Next() {
 		s := Summary{}
 		if err := rows.Scan(
-			&s.Driver.Club.ClubID, &s.Driver.Club.Name, &s.Driver.DriverID, &s.Driver.Name, &s.Driver.Division,
+			&s.Driver.Club.ClubID, &s.Driver.Club.Name, &s.Driver.DriverID, &s.Driver.Name, &s.Driver.Team, &s.Driver.Division,
+			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
+			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
+			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
+			&s.TotalPositionsGained, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
+		); err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, s)
+	}
+	return summaries, nil
+}
+
+func (db *database) GetDriverSummariesBySeasonIDAndWeekAndTeam(seasonID, week int, team string) ([]Summary, error) {
+	summaries := make([]Summary, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			c.pk_club_id,
+			c.name as club_name,
+			d.pk_driver_id,
+			d.name as driver_name,
+			d.team as driver_team,
+			r.division,
+			r.division,
+			max(r.new_irating - r.old_irating) as max_ir_gained,
+			sum(r.new_irating - r.old_irating) as sum_ir_gained,
+			sum(r.new_safety_rating - r.old_safety_rating) as sum_sr_gained,
+			round(avg(r.incidents)/avg(r.laps_completed),3) as avg_inc_per_laps,
+			sum(r.laps_completed) as sum_laps_completed,
+			sum(r.laps_lead) as sum_laps_lead,
+			sum(case when r.starting_position = 0 then 1 else 0 end) as sum_poles,
+			sum(case when r.finishing_position = 0 then 1 else 0 end) as sum_wins,
+			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
+			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
+			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
+			max(r.champpoints) as max_champ_points,
+			sum(r.clubpoints) as sum_club_points,
+			count(r.fk_subsession_id) as nof_races
+		from race_results r
+			join raceweek_results rr on (rr.subsession_id = r.fk_subsession_id)
+			join raceweeks rw on (rw.pk_raceweek_id = rr.fk_raceweek_id)
+			join drivers d on (r.fk_driver_id = d.pk_driver_id)
+			join clubs c on (d.fk_club_id = c.pk_club_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		and d.team = $3
+		and rr.official = true
+		and r.laps_completed > 0
+		group by c.pk_club_id, c.name, d.pk_driver_id, d.name, r.division
+		order by driver_name asc, max_champ_points desc, sum_club_points desc`, seasonID, week, team)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		s := Summary{}
+		if err := rows.Scan(
+			&s.Driver.Club.ClubID, &s.Driver.Club.Name, &s.Driver.DriverID, &s.Driver.Name, &s.Driver.Team, &s.Driver.Division,
+			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
+			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
+			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
+			&s.TotalPositionsGained, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
+		); err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, s)
+	}
+	return summaries, nil
+}
+
+func (db *database) GetDriverSummariesBySeasonIDAndTeam(seasonID int, team string) ([]Summary, error) {
+	summaries := make([]Summary, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			c.pk_club_id,
+			c.name as club_name,
+			d.pk_driver_id,
+			d.name as driver_name,
+			d.team as driver_team,
+			r.division,
+			r.division,
+			max(r.new_irating - r.old_irating) as max_ir_gained,
+			sum(r.new_irating - r.old_irating) as sum_ir_gained,
+			sum(r.new_safety_rating - r.old_safety_rating) as sum_sr_gained,
+			round(avg(r.incidents)/avg(r.laps_completed),3) as avg_inc_per_laps,
+			sum(r.laps_completed) as sum_laps_completed,
+			sum(r.laps_lead) as sum_laps_lead,
+			sum(case when r.starting_position = 0 then 1 else 0 end) as sum_poles,
+			sum(case when r.finishing_position = 0 then 1 else 0 end) as sum_wins,
+			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
+			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
+			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
+			max(r.champpoints) as max_champ_points,
+			sum(r.clubpoints) as sum_club_points,
+			count(r.fk_subsession_id) as nof_races
+		from race_results r
+			join raceweek_results rr on (rr.subsession_id = r.fk_subsession_id)
+			join raceweeks rw on (rw.pk_raceweek_id = rr.fk_raceweek_id)
+			join drivers d on (r.fk_driver_id = d.pk_driver_id)
+			join clubs c on (d.fk_club_id = c.pk_club_id)
+		where rw.fk_season_id = $1
+		and d.team = $2
+		and rr.official = true
+		and r.laps_completed > 0
+		group by c.pk_club_id, c.name, d.pk_driver_id, d.name, r.division
+		order by driver_name asc, max_champ_points desc, sum_club_points desc`, seasonID, team)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		s := Summary{}
+		if err := rows.Scan(
+			&s.Driver.Club.ClubID, &s.Driver.Club.Name, &s.Driver.DriverID, &s.Driver.Name, &s.Driver.Team, &s.Driver.Division,
 			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
 			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
 			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
@@ -1521,11 +1658,12 @@ func (db *database) GetDriverByID(id int) (Driver, error) {
 			c.name as club_name,
 			d.fk_club_id,
 			d.pk_driver_id,
-			d.name as driver_name
+			d.name as driver_name,
+			d.team as driver_team
 		from drivers d
 			join clubs c on (d.fk_club_id = c.pk_club_id)
 		where d.pk_driver_id = $1`, id).Scan(
-		&d.Club.Name, &d.Club.ClubID, &d.DriverID, &d.Name,
+		&d.Club.Name, &d.Club.ClubID, &d.DriverID, &d.Name, &d.Team,
 	); err != nil {
 		return d, err
 	}

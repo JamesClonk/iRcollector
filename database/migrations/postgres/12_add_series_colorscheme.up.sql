@@ -1,4 +1,4 @@
--- add active column to series
+-- add colorscheme column to series
 ALTER TABLE series
 ADD COLUMN colorscheme TEXT;
 
