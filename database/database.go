@@ -385,7 +385,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDAndWeek(seasonID, week int) ([]
 		select distinct
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			cl.pk_club_id,
 			cl.name,
 			rw.pk_raceweek_id,
@@ -433,7 +433,7 @@ func (db *database) GetTimeTrialResultsBySeasonIDWeekAndCarClass(seasonID, week,
 		select distinct
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			cl.pk_club_id,
 			cl.name,
 			rw.pk_raceweek_id,
@@ -524,7 +524,7 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 		select distinct
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			coalesce((select min(rr.division)
 				from race_results rr
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
@@ -579,7 +579,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 		select distinct
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			coalesce((select min(rr.division)
 				from race_results rr
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
@@ -1172,7 +1172,7 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 			c.name,
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			r.division,
 			r.old_irating,
 			r.new_irating,
@@ -1232,7 +1232,7 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 			c.name,
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			r.division,
 			r.old_irating,
 			r.new_irating,
@@ -1302,7 +1302,7 @@ func (db *database) GetRaceResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceR
 			c.name,
 			d.pk_driver_id,
 			d.name,
-			d.team,
+			coalesce(d.team, ''),
 			r.division,
 			r.old_irating,
 			r.new_irating,
@@ -1375,7 +1375,7 @@ func (db *database) GetPointsBySeasonIDAndWeek(seasonID, week int) ([]Points, er
 			c.name as club_name,
 			x.driver_id,
 			d.name as driver_name,
-			d.team as driver_team,
+			coalesce(d.team, '') as driver_team,
 			coalesce(x.division,10)+1 as division,
 			x.champ_points
 		from (
@@ -1424,7 +1424,7 @@ func (db *database) GetPointsBySeasonIDAndWeekAndTrackCategory(seasonID, week in
 			c.name as club_name,
 			x.driver_id,
 			d.name as driver_name,
-			d.team as driver_team,
+			coalesce(d.team, '') as driver_team,
 			coalesce(x.division,10)+1 as division,
 			x.champ_points
 		from (
@@ -1474,7 +1474,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			c.name as club_name,
 			d.pk_driver_id,
 			d.name as driver_name,
-			d.team as driver_team,
+			coalesce(d.team, '') as driver_team,
 			r.division,
 			r.division,
 			max(r.new_irating - r.old_irating) as max_ir_gained,
@@ -1531,7 +1531,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeekAndTeam(seasonID, week in
 			c.name as club_name,
 			d.pk_driver_id,
 			d.name as driver_name,
-			d.team as driver_team,
+			coalesce(d.team, '') as driver_team,
 			r.division,
 			r.division,
 			max(r.new_irating - r.old_irating) as max_ir_gained,
@@ -1589,7 +1589,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndTeam(seasonID int, team strin
 			c.name as club_name,
 			d.pk_driver_id,
 			d.name as driver_name,
-			d.team as driver_team,
+			coalesce(d.team, '') as driver_team,
 			r.division,
 			r.division,
 			max(r.new_irating - r.old_irating) as max_ir_gained,
@@ -1659,7 +1659,7 @@ func (db *database) GetDriverByID(id int) (Driver, error) {
 			d.fk_club_id,
 			d.pk_driver_id,
 			d.name as driver_name,
-			d.team as driver_team
+			coalesce(d.team, '') as driver_team
 		from drivers d
 			join clubs c on (d.fk_club_id = c.pk_club_id)
 		where d.pk_driver_id = $1`, id).Scan(
