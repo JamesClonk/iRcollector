@@ -1488,6 +1488,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
+			avg(r.champpoints) as avg_champ_points,
 			max(r.champpoints) as max_champ_points,
 			sum(r.clubpoints) as sum_club_points,
 			count(r.fk_subsession_id) as nof_races
@@ -1514,7 +1515,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
 			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
 			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
-			&s.TotalPositionsGained, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
+			&s.TotalPositionsGained, &s.AverageChampPoints, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
 		); err != nil {
 			return nil, err
 		}
@@ -1545,6 +1546,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeekAndTeam(seasonID, week in
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
+			avg(r.champpoints) as avg_champ_points,
 			max(r.champpoints) as max_champ_points,
 			sum(r.clubpoints) as sum_club_points,
 			count(r.fk_subsession_id) as nof_races
@@ -1572,7 +1574,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeekAndTeam(seasonID, week in
 			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
 			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
 			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
-			&s.TotalPositionsGained, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
+			&s.TotalPositionsGained, &s.AverageChampPoints, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
 		); err != nil {
 			return nil, err
 		}
@@ -1603,6 +1605,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndTeam(seasonID int, team strin
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
+			avg(r.champpoints) as avg_champ_points,
 			max(r.champpoints) as max_champ_points,
 			sum(r.clubpoints) as sum_club_points,
 			count(r.fk_subsession_id) as nof_races
@@ -1616,7 +1619,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndTeam(seasonID int, team strin
 		and rr.official = true
 		and r.laps_completed > 0
 		group by c.pk_club_id, c.name, d.pk_driver_id, d.name, r.division
-		order by driver_name asc, max_champ_points desc, sum_club_points desc`, seasonID, team)
+		order by driver_name asc, avg_champ_points desc, sum_club_points desc`, seasonID, team)
 	if err != nil {
 		return nil, err
 	}
@@ -1629,7 +1632,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndTeam(seasonID int, team strin
 			&s.Division, &s.HighestIRatingGain, &s.TotalIRatingGain, &s.TotalSafetyRatingGain,
 			&s.AverageIncidentsPerLap, &s.LapsCompleted, &s.LapsLead,
 			&s.Poles, &s.Wins, &s.Podiums, &s.Top5,
-			&s.TotalPositionsGained, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
+			&s.TotalPositionsGained, &s.AverageChampPoints, &s.HighestChampPoints, &s.TotalClubPoints, &s.NumberOfRaces,
 		); err != nil {
 			return nil, err
 		}

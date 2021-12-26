@@ -211,6 +211,7 @@ type Summary struct {
 	Podiums                int
 	Top5                   int
 	TotalPositionsGained   int
+	AverageChampPoints     int
 	HighestChampPoints     int
 	TotalClubPoints        int
 	NumberOfRaces          int
