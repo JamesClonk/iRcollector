@@ -1488,7 +1488,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeek(seasonID, week int) ([]S
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
-			avg(r.champpoints) as avg_champ_points,
+			round(avg(r.champpoints),0) as avg_champ_points,
 			max(r.champpoints) as max_champ_points,
 			sum(r.clubpoints) as sum_club_points,
 			count(r.fk_subsession_id) as nof_races
@@ -1546,7 +1546,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndWeekAndTeam(seasonID, week in
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
-			avg(r.champpoints) as avg_champ_points,
+			round(avg(r.champpoints),0) as avg_champ_points,
 			max(r.champpoints) as max_champ_points,
 			sum(r.clubpoints) as sum_club_points,
 			count(r.fk_subsession_id) as nof_races
@@ -1605,7 +1605,7 @@ func (db *database) GetDriverSummariesBySeasonIDAndTeam(seasonID int, team strin
 			sum(case when r.finishing_position < 3 then 1 else 0 end) as sum_podiums,
 			sum(case when r.finishing_position < 5 then 1 else 0 end) as sum_top5,
 			sum(r.starting_position - r.finishing_position) as sum_pos_gained,
-			avg(r.champpoints) as avg_champ_points,
+			round(avg(r.champpoints),0) as avg_champ_points,
 			max(r.champpoints) as max_champ_points,
 			sum(r.clubpoints) as sum_club_points,
 			count(r.fk_subsession_id) as nof_races
