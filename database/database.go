@@ -72,7 +72,10 @@ func (db *database) GetSeries() ([]Series, error) {
 			s.short_name,
 			s.regex,
 			s.colorscheme,
-			s.active
+			s.active,
+			(select name from seasons where pk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_season,
+			(select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id) as current_season_id,
+			(select max(raceweek)+1 from raceweeks where fk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_week
 		from series s
 		order by s.name asc, s.short_name asc`); err != nil {
 		return nil, err
@@ -89,7 +92,10 @@ func (db *database) GetActiveSeries() ([]Series, error) {
 			s.short_name,
 			s.regex,
 			s.colorscheme,
-			s.active
+			s.active,
+			(select name from seasons where pk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_season,
+			(select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id) as current_season_id,
+			(select max(raceweek)+1 from raceweeks where fk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_week
 		from series s
 		where s.active = 't'
 		order by s.name asc, s.short_name asc`); err != nil {
