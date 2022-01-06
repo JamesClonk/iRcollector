@@ -40,6 +40,8 @@ func (c *Collector) Run() {
 
 	// update tracks
 	c.CollectTracks()
+	time.Sleep(9999 * time.Minute)
+
 	// update cars
 	c.CollectCars()
 

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -50,9 +52,6 @@ func New() *Client {
 }
 
 func (c *Client) Login() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	location, err := time.LoadLocation("Europe/Zurich")
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -91,8 +90,62 @@ func (c *Client) Login() error {
 		strings.Contains(strings.ToLower(resp.Header.Get("Location")), "failedlogin") {
 		return fmt.Errorf("login failed")
 	}
-	c.lastLogin = time.Now()
 	return nil
+}
+
+func (c *Client) LoginNG() error {
+	var data = []byte(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, env.MustGet("IR_USERNAME"), env.MustGet("IR_PASSWORD")))
+	req, err := http.NewRequest("POST", "https://members-ng.iracing.com/auth", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{
+		Jar: c.CookieJar,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusTooManyRequests {
+		time.Sleep(5 * time.Second)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("login failed with HTTP [%d]", resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) FollowLink(url string) ([]byte, error) {
+	// get target link for caching first
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, err
+	}
+	data, err := c.doRequest(req)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, err
+	}
+
+	link := Link{}
+	if err := json.Unmarshal(data, &link); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal cache link: %s", data)
+		return nil, err
+	}
+
+	// now get the actual data
+	req, err = http.NewRequest("GET", link.Target, nil)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, err
+	}
+	return c.doRequest(req)
 }
 
 func (c *Client) Get(url string) ([]byte, error) {
@@ -114,16 +167,21 @@ func (c *Client) Post(url string, values url.Values) ([]byte, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	// relogin if needed
 	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
 		if err := c.Login(); err != nil {
 			clientLoginError.Inc()
 			return nil, err
 		}
+		if err := c.LoginNG(); err != nil {
+			clientLoginError.Inc()
+			return nil, err
+		}
+		c.lastLogin = time.Now()
 	}
-
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	time.Sleep(2345 * time.Millisecond)
 
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36")
@@ -149,6 +207,10 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, fmt.Errorf("status code: %v", resp.StatusCode)
 	}
+
+	---
+	log.Debugf("HEADERS: %v", resp.Header) // TODO: parse ratelimit header data and implement ratelimiting
+	---
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

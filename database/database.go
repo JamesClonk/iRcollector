@@ -226,12 +226,16 @@ func (db *database) UpsertTrack(track Track) error {
 
 	stmt, err := tx.Preparex(`
 		insert into tracks
-			(pk_track_id, name, config, category, banner_image, panel_image, logo_image, map_image, config_image)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			(pk_track_id, name, config, category, free_with_subscription, retired, is_dirt, is_oval, banner_image, panel_image, logo_image, map_image, config_image)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		on conflict (pk_track_id) do update
 		set name = excluded.name,
 			config = excluded.config,
 			category = excluded.category,
+			free_with_subscription = excluded.free_with_subscription,
+			retired = excluded.retired,
+			is_dirt = excluded.is_dirt,
+			is_oval = excluded.is_oval,
 			banner_image = excluded.banner_image,
 			panel_image = excluded.panel_image,
 			logo_image = excluded.logo_image,
@@ -245,6 +249,7 @@ func (db *database) UpsertTrack(track Track) error {
 
 	if _, err = stmt.Exec(
 		track.TrackID, track.Name, track.Config, track.Category,
+		track.Free, track.Retired, track.IsDirt, track.IsOval,
 		track.BannerImage, track.PanelImage, track.LogoImage, track.MapImage, track.ConfigImage); err != nil {
 		tx.Rollback()
 		return err
@@ -926,7 +931,7 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 					join drivers d on d.pk_driver_id = rr.fk_driver_id
 				where rwr.official = true
 				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
-				and t.category = 'Road'
+				and lower(t.category) = 'road'
 			) as nof_unique_road_drivers,
 			(select count(*) from (
 				select
@@ -952,7 +957,7 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 						join drivers d on d.pk_driver_id = rr.fk_driver_id
 					where rwr.official = true
 					and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
-					and t.category = 'Oval'
+					and lower(t.category) = 'oval'
 				)
 				group by d.pk_driver_id, rw.raceweek
 				order by 1 asc
@@ -971,7 +976,7 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 					join drivers d on d.pk_driver_id = rr.fk_driver_id
 				where rwr.official = true
 				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
-				and t.category = 'Oval'
+				and lower(t.category) = 'oval'
 			) as nof_unique_oval_drivers,
 			(select count(*) from (
 				select
@@ -997,7 +1002,7 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 						join drivers d on d.pk_driver_id = rr.fk_driver_id
 					where rwr.official = true
 					and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
-					and t.category = 'Road'
+					and lower(t.category) = 'road'
 				)
 				group by d.pk_driver_id, rw.raceweek
 				order by 1 asc
@@ -1016,7 +1021,7 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 					join drivers d on d.pk_driver_id = rr.fk_driver_id
 				where rwr.official = true
 				and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
-				and t.category = 'Oval'
+				and lower(t.category) = 'oval'
 				and d.pk_driver_id in (
 					select distinct d.pk_driver_id
 					from seasons s2
@@ -1027,7 +1032,7 @@ func (db *database) GetSeasonMetricsBySeriesID(seriesID int) ([]SeasonMetrics, e
 						join drivers d on d.pk_driver_id = rr.fk_driver_id
 					where rwr.official = true
 					and s2.fk_series_id = s.fk_series_id and s2.year = s.year and s2.quarter = s.quarter and s2.timeslots = s.timeslots
-					and t.category = 'Road'
+					and lower(t.category) = 'road'
 				)
 			) as nof_unique_both_drivers,
 			(select count(*) from (
@@ -1687,6 +1692,10 @@ func (db *database) GetTrackByID(id int) (Track, error) {
 			t.name,
 			t.pk_track_id,
 			t.category,
+			t.free_with_subscription,
+			t.retired,
+			t.is_dirt,
+			t.is_oval,
 			t.banner_image,
 			t.panel_image,
 			t.logo_image,
