@@ -1,11 +1,14 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -50,8 +53,7 @@ func New() *Client {
 }
 
 func (c *Client) Login() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	log.Debugf("login to members ...")
 
 	location, err := time.LoadLocation("Europe/Zurich")
 	if err != nil {
@@ -80,6 +82,10 @@ func (c *Client) Login() error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(1 * time.Minute)
+	}
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
@@ -91,8 +97,64 @@ func (c *Client) Login() error {
 		strings.Contains(strings.ToLower(resp.Header.Get("Location")), "failedlogin") {
 		return fmt.Errorf("login failed")
 	}
-	c.lastLogin = time.Now()
 	return nil
+}
+
+func (c *Client) LoginNG() error {
+	log.Debugf("login to members-ng ...")
+
+	var data = []byte(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, env.MustGet("IR_USERNAME"), env.MustGet("IR_PASSWORD")))
+	req, err := http.NewRequest("POST", "https://members-ng.iracing.com/auth", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{
+		Jar: c.CookieJar,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(1 * time.Minute)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("login failed with HTTP [%d]", resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) FollowLink(url string) ([]byte, error) {
+	// get target link for caching first
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, err
+	}
+	data, err := c.doRequest(req)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, err
+	}
+
+	link := Link{}
+	if err := json.Unmarshal(data, &link); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal cache link: %s", data)
+		return nil, err
+	}
+
+	// now get the actual data
+	req, err = http.NewRequest("GET", link.Target, nil)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, err
+	}
+	return c.doRequest(req)
 }
 
 func (c *Client) Get(url string) ([]byte, error) {
@@ -114,17 +176,23 @@ func (c *Client) Post(url string, values url.Values) ([]byte, error) {
 }
 
 func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
 	// relogin if needed
 	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
 		if err := c.Login(); err != nil {
 			clientLoginError.Inc()
+			time.Sleep(2222 * time.Millisecond) // safety sleep
 			return nil, err
 		}
+		if err := c.LoginNG(); err != nil {
+			clientLoginError.Inc()
+			time.Sleep(2222 * time.Millisecond) // safety sleep
+			return nil, err
+		}
+		c.lastLogin = time.Now()
 	}
-
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	time.Sleep(2345 * time.Millisecond)
 
 	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36")
 	req.Header.Add("Referer", "https://members.iracing.com/membersite/login.jsp")
@@ -141,14 +209,45 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		clientRequestError.Inc()
+		time.Sleep(2222 * time.Millisecond) // safety sleep
 		return nil, fmt.Errorf("failed request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		clientRequestError.Inc()
+		time.Sleep(2222 * time.Millisecond) // safety sleep
 		return nil, fmt.Errorf("status code: %v", resp.StatusCode)
 	}
+
+	/*
+		X-Ratelimit-Limit:[240]
+		X-Ratelimit-Remaining:[239]
+		X-Ratelimit-Reset:[1641553935]
+	*/
+	// check ratelimiting values
+	ratelimitRemaining := resp.Header.Get("X-Ratelimit-Remaining")
+	ratelimitReset := resp.Header.Get("X-Ratelimit-Reset")
+	// do we have the necessary headers? (is it members-ng?)
+	if len(ratelimitRemaining) > 0 && len(ratelimitReset) > 0 {
+		remaining, err := strconv.Atoi(ratelimitRemaining)
+		if err != nil {
+			remaining = 0
+		}
+		if remaining < 10 {
+			sleepEpoch, err := strconv.ParseInt(ratelimitReset, 10, 64)
+			if err != nil {
+				sleepEpoch = time.Now().Add(1 * time.Minute).Unix()
+			}
+			log.Debugf("sleeping for ratelimit, until: %v", time.Unix(sleepEpoch, 0))
+			time.Sleep(time.Until(time.Unix(sleepEpoch, 0)))
+		}
+	} else if req.URL.Host == "members.iracing.com" {
+		// old API, lets sleep a fixed amount
+		log.Debugf("sleeping for 2s because of old API call to: [%s, %s]", req.URL.Host, req.URL.RequestURI())
+		time.Sleep(2222 * time.Millisecond)
+	}
+	time.Sleep(111 * time.Millisecond) // safety sleep
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

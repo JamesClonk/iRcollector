@@ -22,6 +22,10 @@ type Track struct {
 	Name        string `db:"name"`
 	Config      string `db:"config"`
 	Category    string `db:"category"`
+	Free        bool   `db:"free_with_subscription"`
+	Retired     bool   `db:"retired"`
+	IsDirt      bool   `db:"is_dirt"`
+	IsOval      bool   `db:"is_oval"`
 	BannerImage string `db:"banner_image"`
 	PanelImage  string `db:"panel_image"`
 	LogoImage   string `db:"logo_image"`

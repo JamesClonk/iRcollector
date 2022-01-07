@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+type Link struct {
+	Target string `json:"link"`
+}
+
 type CareerStats struct {
 	Wins                    int     `json:"wins"`
 	TotalClubPoints         int     `json:"totalclubpoints"`
@@ -175,6 +179,7 @@ func (rws RaceWeekResult) String() string {
 }
 
 /*
+	OLD - deprecated
 	trackobj={
 		name						: "Circuit Park Zandvoort",
 		category					: "Road",
@@ -200,17 +205,83 @@ func (rws RaceWeekResult) String() string {
 		nlapsSolo					: 6,
 		IsPurchasable				: Boolean('true')
 	};
+	NEW - members-ng
+	  {
+	    "ai_enabled": false,
+	    "award_exempt": true,
+	    "category": "road",
+	    "category_id": 2,
+	    "closes": "2018-10-31",
+	    "config_name": "Full Course",
+	    "corners_per_lap": 7,
+	    "created": "2006-04-04T19:10:00Z",
+	    "free_with_subscription": true,
+	    "fully_lit": false,
+	    "grid_stalls": 62,
+	    "has_opt_path": false,
+	    "has_short_parade_lap": true,
+	    "has_svg_map": true,
+	    "is_dirt": false,
+	    "is_oval": false,
+	    "lap_scoring": 0,
+	    "latitude": 41.9282105,
+	    "location": "Lakeville, Connecticut, USA",
+	    "longitude": -73.3839642,
+	    "max_cars": 66,
+	    "night_lighting": false,
+	    "nominal_lap_time": 53.54668,
+	    "number_pitstalls": 34,
+	    "opens": "2018-04-01",
+	    "package_id": 9,
+	    "pit_road_speed_limit": 45,
+	    "price": 0,
+	    "priority": 1,
+	    "purchasable": true,
+	    "qualify_laps": 2,
+	    "restart_on_left": false,
+	    "retired": false,
+	    "search_filters": "road,lrp",
+	    "site_url": "http://www.limerock.com/",
+	    "sku": 10021,
+	    "solo_laps": 8,
+	    "start_on_left": false,
+	    "supports_grip_compound": false,
+	    "tech_track": false,
+	    "time_zone": "America/New_York",
+	    "track_config_length": 1.53,
+	    "track_dirpath": "limerock\\full",
+	    "track_id": 1,
+	    "track_name": "[Legacy] Lime Rock Park - 2008",
+	    "track_types": [
+	      {
+	        "track_type": "road"
+	      }
+	    ]
+	  },
 */
 type Track struct {
-	TrackID     int           `json:"trackID"`
-	Name        encodedString `json:"name"`
+	TrackID     int           `json:"track_id"`
+	Name        encodedString `json:"track_name"`
 	Category    string        `json:"category"`
-	Config      string        `json:"configname"`
-	BannerImage string        `json:"banner_img"`
-	PanelImage  string        `json:"col_color_img"`
-	LogoImage   string        `json:"exp_logo_img"`
-	MapImage    string        `json:"exp_map_img"`
-	ConfigImage string        `json:"exp_config_img"`
+	CategoryID  int           `json:"category_id"`
+	Config      string        `json:"config_name"`
+	Free        bool          `json:"free_with_subscription"`
+	Retired     bool          `json:"retired"`
+	IsDirt      bool          `json:"is_dirt"`
+	IsOval      bool          `json:"is_oval"`
+	BannerImage string
+	PanelImage  string
+	LogoImage   string
+	MapImage    string
+	ConfigImage string
+}
+type TrackAsset struct {
+	Folder        string `json:"folder"`
+	GalleryPrefix string `json:"gallery_prefix"`
+	LargeImage    string `json:"large_image"`
+	Logo          string `json:"logo"`
+	SmallImage    string `json:"small_image"`
+	TrackMap      string `json:"track_map"`
 }
 
 func (t Track) String() string {

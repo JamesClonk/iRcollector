@@ -40,6 +40,7 @@ func (c *Collector) Run() {
 
 	// update tracks
 	c.CollectTracks()
+
 	// update cars
 	c.CollectCars()
 

@@ -2,41 +2,50 @@ package api
 
 import (
 	"encoding/json"
-	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/JamesClonk/iRcollector/log"
 )
 
 func (c *Client) GetTracks() ([]Track, error) {
 	log.Infoln("Get all tracks ...")
-	data, err := c.Get("https://members.iracing.com/membersite/member/Tracks.do")
+	data, err := c.FollowLink("https://members-ng.iracing.com/data/track/get")
 	if err != nil {
 		return nil, err
 	}
 
-	// use ugly regexp to jsonify javascript code
-	trackRx := regexp.MustCompile(`trackobj=([^;]*);`)
-	elementRx := regexp.MustCompile(`[\s]+([[:word:]]+)[\s]*(:.+\n)`)
-	removeRx := regexp.MustCompile(`"[[:word:]]+":[\s]*[A-Za-z(]+.*\n`)
-	removeRx2 := regexp.MustCompile(`,[\s]+}`)
-
+	// first the track data itself
 	tracks := make([]Track, 0)
-	for _, match := range trackRx.FindAllSubmatch(data, -1) {
-		if len(match) == 2 {
-			jsonObject := elementRx.ReplaceAll(match[1], []byte(`"${1}"${2}`))
-			jsonObject = removeRx.ReplaceAll(jsonObject, nil)
-			jsonObject = removeRx2.ReplaceAll(jsonObject, nil)
-			jsonObject = append(jsonObject, []byte("}")...)
-			jsonObject = toUTF8(jsonObject)
+	if err := json.Unmarshal(data, &tracks); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal track data: %s", data)
+		return nil, err
+	}
 
-			var track Track
-			if err := json.Unmarshal(jsonObject, &track); err != nil {
-				clientRequestError.Inc()
-				log.Errorf("could not parse track json object: %s", jsonObject)
-				return nil, err
-			}
-			tracks = append(tracks, track)
+	// now the graphical assets
+	data, err = c.FollowLink("https://members-ng.iracing.com/data/track/assets")
+	if err != nil {
+		return nil, err
+	}
+	trackAssets := make(map[string]TrackAsset)
+	if err := json.Unmarshal(data, &trackAssets); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal track asset data: %s", data)
+		return nil, err
+	}
+
+	// now insert the asset URLs into the track data
+	for idx := range tracks {
+		if asset, ok := trackAssets[strconv.Itoa(idx)]; ok {
+			tracks[idx].LogoImage = "https://images-static.iracing.com" + asset.Logo
+			tracks[idx].BannerImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.SmallImage
+			tracks[idx].PanelImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.LargeImage
+			tracks[idx].MapImage = "-"
+			tracks[idx].ConfigImage = "-"
 		}
+		// also make sure this is lowercase
+		tracks[idx].Category = strings.ToLower(tracks[idx].Category)
 	}
 	return tracks, nil
 }
