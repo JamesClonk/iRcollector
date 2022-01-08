@@ -1450,7 +1450,7 @@ func (db *database) GetPointsBySeasonIDAndWeekAndTrackCategory(seasonID, week in
 				join tracks tr on (tr.pk_track_id = rw.fk_track_id)
 			where rw.fk_season_id = $1
 			and rw.raceweek = $2
-			and tr.category = $3
+			and lower(tr.category) = $3
 			and rr.official = true
 			order by driver_id asc, champ_points desc
 		) x
