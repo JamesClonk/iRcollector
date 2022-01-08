@@ -30,14 +30,17 @@ func (c *Collector) CollectCars() {
 
 		// upsert car
 		cr := database.Car{
-			CarID:       car.CarID,
-			Name:        car.Name.String(),
-			Description: car.Description,
-			Model:       car.Model,
-			Make:        car.Make,
-			PanelImage:  car.PanelImage,
-			LogoImage:   car.LogoImage,
-			CarImage:    car.CarImage,
+			CarID:        car.CarID,
+			Name:         car.Name.String(),
+			Description:  car.Description,
+			Model:        car.Model,
+			Make:         car.Make,
+			PanelImage:   car.PanelImage,
+			LogoImage:    car.LogoImage,
+			CarImage:     car.CarImage,
+			Abbreviation: car.Abbreviation,
+			Free:         car.Free,
+			Retired:      car.Retired,
 		}
 		if err := c.db.UpsertCar(cr); err != nil {
 			collectorErrors.Inc()

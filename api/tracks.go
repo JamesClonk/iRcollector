@@ -37,7 +37,7 @@ func (c *Client) GetTracks() ([]Track, error) {
 
 	// now insert the asset URLs into the track data
 	for idx := range tracks {
-		if asset, ok := trackAssets[strconv.Itoa(idx)]; ok {
+		if asset, ok := trackAssets[strconv.Itoa(tracks[idx].TrackID)]; ok {
 			tracks[idx].LogoImage = "https://images-static.iracing.com" + asset.Logo
 			tracks[idx].BannerImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.SmallImage
 			tracks[idx].PanelImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.LargeImage

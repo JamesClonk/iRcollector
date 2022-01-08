@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/JamesClonk/iRcollector/log"
 )
@@ -36,8 +37,8 @@ func (c *Client) GetCars() ([]Car, error) {
 
 	// now insert the asset URLs into the car data
 	for idx := range cars {
-		if asset, ok := carAssets[strconv.Itoa(idx)]; ok {
-			cars[idx].Description = "https://images-static.iracing.com" + asset.Description
+		if asset, ok := carAssets[strconv.Itoa(cars[idx].CarID)]; ok {
+			cars[idx].Description = strings.ReplaceAll(strings.ReplaceAll(asset.Description, "\r", ""), "\n", "")
 			cars[idx].LogoImage = "https://images-static.iracing.com" + asset.Logo
 			cars[idx].CarImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.SmallImage
 			cars[idx].PanelImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.LargeImage
