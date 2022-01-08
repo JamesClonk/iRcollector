@@ -38,18 +38,21 @@ func (t Track) String() string {
 }
 
 type Car struct {
-	CarID       int    `db:"pk_car_id"`
-	Name        string `db:"name"`
-	Description string `db:"description"`
-	Model       string `db:"model"`
-	Make        string `db:"make"`
-	PanelImage  string `db:"panel_image"`
-	LogoImage   string `db:"logo_image"`
-	CarImage    string `db:"car_image"`
+	CarID        int    `db:"pk_car_id"`
+	Name         string `db:"name"`
+	Description  string `db:"description"`
+	Model        string `db:"model"`
+	Make         string `db:"make"`
+	PanelImage   string `db:"panel_image"`
+	LogoImage    string `db:"logo_image"`
+	CarImage     string `db:"car_image"`
+	Abbreviation string `db:"abbreviation"`
+	Free         bool   `db:"free_with_subscription"`
+	Retired      bool   `db:"retired"`
 }
 
 func (c Car) String() string {
-	return fmt.Sprintf("[ CarID: %d, Name: %s ]", c.CarID, c.Name)
+	return fmt.Sprintf("[ CarID: %d, Name: %s, Abbr: %s ]", c.CarID, c.Name, c.Abbreviation)
 }
 
 type Season struct {

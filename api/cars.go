@@ -2,36 +2,45 @@ package api
 
 import (
 	"encoding/json"
-	"regexp"
+	"strconv"
 
 	"github.com/JamesClonk/iRcollector/log"
 )
 
 func (c *Client) GetCars() ([]Car, error) {
 	log.Infoln("Get all cars ...")
-	data, err := c.Get("https://members.iracing.com/membersite/member/Cars.do")
+	data, err := c.FollowLink("https://members-ng.iracing.com/data/car/get")
 	if err != nil {
 		return nil, err
 	}
 
-	// use ugly regexp to jsonify javascript code
-	trackRx := regexp.MustCompile(`carobj=([^;]*);`)
-	elementRx := regexp.MustCompile(`[\s]+([[:word:]]+)[\s]*(:.+\n)`)
-	removeRx := regexp.MustCompile(`"[[:word:]]+":[\s]*[A-Za-z(]+.*\n`)
-
+	// first the car data itself
 	cars := make([]Car, 0)
-	for _, match := range trackRx.FindAllSubmatch(data, -1) {
-		if len(match) == 2 {
-			jsonObject := elementRx.ReplaceAll(match[1], []byte(`"${1}"${2}`))
-			jsonObject = removeRx.ReplaceAll(jsonObject, nil)
+	if err := json.Unmarshal(data, &cars); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal car data: %s", data)
+		return nil, err
+	}
 
-			var car Car
-			if err := json.Unmarshal(jsonObject, &car); err != nil {
-				clientRequestError.Inc()
-				log.Errorf("could not parse car json object: %s", jsonObject)
-				return nil, err
-			}
-			cars = append(cars, car)
+	// now the graphical assets
+	data, err = c.FollowLink("https://members-ng.iracing.com/data/car/assets")
+	if err != nil {
+		return nil, err
+	}
+	carAssets := make(map[string]CarAsset)
+	if err := json.Unmarshal(data, &carAssets); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal car asset data: %s", data)
+		return nil, err
+	}
+
+	// now insert the asset URLs into the car data
+	for idx := range cars {
+		if asset, ok := carAssets[strconv.Itoa(idx)]; ok {
+			cars[idx].Description = "https://images-static.iracing.com" + asset.Description
+			cars[idx].LogoImage = "https://images-static.iracing.com" + asset.Logo
+			cars[idx].CarImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.SmallImage
+			cars[idx].PanelImage = "https://images-static.iracing.com" + asset.Folder + "/" + asset.LargeImage
 		}
 	}
 	return cars, nil

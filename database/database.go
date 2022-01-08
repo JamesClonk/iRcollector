@@ -265,8 +265,8 @@ func (db *database) UpsertCar(car Car) error {
 
 	stmt, err := tx.Preparex(`
 		insert into cars
-			(pk_car_id, name, description, model, make, panel_image, logo_image, car_image)
-		values ($1, $2, $3, $4, $5, $6, $7, $8)
+			(pk_car_id, name, description, model, make, panel_image, logo_image, car_image, abbreviation, free_with_subscription, retired)
+		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		on conflict (pk_car_id) do update
 		set name = excluded.name,
 			description = excluded.description,
@@ -274,7 +274,10 @@ func (db *database) UpsertCar(car Car) error {
 			make = excluded.make,
 			panel_image = excluded.panel_image,
 			logo_image = excluded.logo_image,
-			car_image = excluded.car_image`)
+			car_image = excluded.car_image,
+			abbreviation = excluded.abbreviation,
+			free_with_subscription = excluded.free_with_subscription,
+			retired = excluded.retired`)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -283,7 +286,8 @@ func (db *database) UpsertCar(car Car) error {
 
 	if _, err = stmt.Exec(
 		car.CarID, car.Name, car.Description, car.Model, car.Make,
-		car.PanelImage, car.LogoImage, car.CarImage); err != nil {
+		car.PanelImage, car.LogoImage, car.CarImage,
+		car.Abbreviation, car.Free, car.Retired); err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -301,7 +305,10 @@ func (db *database) GetCarByID(id int) (Car, error) {
 			c.make,
 			c.panel_image,
 			c.logo_image,
-			c.car_image
+			c.car_image,
+			c.abbreviation,
+			c.free_with_subscription,
+			c.retired
 		from cars c
 		where c.pk_car_id = $1`, id); err != nil {
 		return car, err
@@ -320,7 +327,10 @@ func (db *database) GetCarsByRaceWeekID(raceweekID int) ([]Car, error) {
 			c.make,
 			c.panel_image,
 			c.logo_image,
-			c.car_image
+			c.car_image,
+			c.abbreviation,
+			c.free_with_subscription,
+			c.retired
 		from cars c
 		where c.pk_car_id in (
 			select
@@ -555,6 +565,9 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 			c.panel_image,
 			c.logo_image,
 			c.car_image,
+			c.abbreviation,
+			c.free_with_subscription,
+			c.retired,
 			coalesce(tr.time_trial_subsession_id, 0),
 			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
@@ -576,7 +589,8 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 		&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team,
 		&t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 		&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
-		&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
+		&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make,
+		&t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage, &t.Car.Abbreviation, &t.Car.Free, &t.Car.Retired,
 		&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
 	); err != nil {
 		return TimeRanking{}, err
@@ -610,6 +624,9 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			c.panel_image,
 			c.logo_image,
 			c.car_image,
+			c.abbreviation,
+			c.free_with_subscription,
+			c.retired,
 			coalesce(tr.time_trial_subsession_id, 0),
 			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
@@ -635,7 +652,8 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team,
 			&t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
 			&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
-			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make, &t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage,
+			&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make,
+			&t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage, &t.Car.Abbreviation, &t.Car.Free, &t.Car.Retired,
 			&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
 		); err != nil {
 			return nil, err

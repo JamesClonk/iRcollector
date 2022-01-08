@@ -44,6 +44,8 @@ func (c *Collector) Run() {
 	// update cars
 	c.CollectCars()
 
+	time.Sleep(999 * time.Minute) // TODO: remove!
+
 	forceUpdate := false
 	forceUpdateCounter := 0
 	for {

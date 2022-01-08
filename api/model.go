@@ -289,6 +289,7 @@ func (t Track) String() string {
 }
 
 /*
+	OLD - deprecated
 	carobj={
 		pkgID:179,
 		sku:10389,
@@ -312,20 +313,122 @@ func (t Track) String() string {
 		expanded_mfr_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/logo.jpg",
 		header_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/title_list.gif"
 	};
+	NEW - members-ng
+		[
+		  {
+		    "ai_enabled": true,
+		    "allow_number_colors": false,
+		    "allow_number_font": false,
+		    "allow_sponsor1": true,
+		    "allow_sponsor2": true,
+		    "allow_wheel_color": true,
+		    "award_exempt": false,
+		    "car_dirpath": "rt2000",
+		    "car_id": 1,
+		    "car_name": "Skip Barber Formula 2000",
+		    "car_name_abbreviated": "SBRS",
+		    "car_types": [
+		      {
+		        "car_type": "openwheel"
+		      },
+		      {
+		        "car_type": "road"
+		      },
+		      {
+		        "car_type": "rt2000"
+		      },
+		      {
+		        "car_type": "sbrs"
+		      },
+		      {
+		        "car_type": "skippy"
+		      }
+		    ],
+		    "car_weight": 1250,
+		    "categories": [
+		      "road"
+		    ],
+		    "created": "2006-05-03T19:10:00Z",
+		    "free_with_subscription": false,
+		    "has_headlights": false,
+		    "has_multiple_dry_tire_types": false,
+		    "hp": 132,
+		    "max_power_adjust_pct": 0,
+		    "max_weight_penalty_kg": 250,
+		    "min_power_adjust_pct": -5,
+		    "package_id": 15,
+		    "patterns": 3,
+		    "price": 11.95,
+		    "retired": false,
+		    "search_filters": "road,openwheel,skippy,sbrs,rt2000",
+		    "sku": 10009
+		  },
+		  {
+		    "ai_enabled": false,
+		    "allow_number_colors": true,
+		    "allow_number_font": true,
+		    "allow_sponsor1": true,
+		    "allow_sponsor2": true,
+		    "allow_wheel_color": false,
+		    "award_exempt": false,
+		    "car_dirpath": "solstice",
+		    "car_id": 3,
+		    "car_make": "Pontiac",
+		    "car_model": "Solstice",
+		    "car_name": "Pontiac Solstice",
+		    "car_name_abbreviated": "SOL",
+		    "car_types": [
+		      {
+		        "car_type": "road"
+		      },
+		      {
+		        "car_type": "sportscar"
+		      }
+		    ],
+		    "car_weight": 2948,
+		    "categories": [
+		      "road"
+		    ],
+		    "created": "2006-10-17T19:30:00Z",
+		    "free_with_subscription": true,
+		    "has_headlights": true,
+		    "has_multiple_dry_tire_types": false,
+		    "hp": 177,
+		    "max_power_adjust_pct": 0,
+		    "max_weight_penalty_kg": 250,
+		    "min_power_adjust_pct": -5,
+		    "package_id": 20,
+		    "patterns": 30,
+		    "price": 0,
+		    "retired": false,
+		    "search_filters": "road,sportscar",
+		    "sku": 10011
+		  }
 */
 type Car struct {
-	CarID       int           `json:"carID"`
-	Name        encodedString `json:"name"`
-	Description string        `json:"desc"`
-	Model       string        `json:"model"`
-	Make        string        `json:"make"`
-	PanelImage  string        `json:"collapsedimg"`
-	LogoImage   string        `json:"expanded_mfr_img"`
-	CarImage    string        `json:"expanded_car_img"`
+	CarID        int           `json:"car_id"`
+	Name         encodedString `json:"car_name"`
+	Description  string
+	Model        string `json:"car_model"`
+	Make         string `json:"car_make"`
+	PanelImage   string
+	LogoImage    string
+	CarImage     string
+	Abbreviation string `json:"car_name_abbreviated"`
+	Free         bool   `json:"free_with_subscription"`
+	Retired      bool   `json:"retired"`
+}
+type CarAsset struct {
+	Description   string `json:"detail_copy"`
+	Folder        string `json:"folder"`
+	GalleryPrefix string `json:"gallery_prefix"`
+	LargeImage    string `json:"large_image"`
+	Logo          string `json:"logo"`
+	SmallImage    string `json:"small_image"`
 }
 
 func (c Car) String() string {
-	return fmt.Sprintf("[ CarID: %d, Name: %s ]", c.CarID, c.Name)
+	return fmt.Sprintf("[ CarID: %d, Name: %s, Abbr: %s ]", c.CarID, c.Name, c.Abbreviation)
 }
 
 type TimeRanking struct {
