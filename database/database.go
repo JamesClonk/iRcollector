@@ -13,6 +13,7 @@ type Database interface {
 	GetActiveSeries() ([]Series, error)
 	GetSeasons() ([]Season, error)
 	GetSeasonsBySeriesID(int) ([]Season, error)
+	GetSeasonsByAPISeriesID(int) ([]Season, error)
 	GetSeasonByID(int) (Season, error)
 	UpsertSeason(Season) error
 	UpsertTrack(Track) error
@@ -73,9 +74,10 @@ func (db *database) GetSeries() ([]Series, error) {
 			s.regex,
 			s.colorscheme,
 			s.active,
-			(select name from seasons where pk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_season,
-			(select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id) as current_season_id,
-			(select max(raceweek)+1 from raceweeks where fk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_week
+			coalesce(s.api_series_id, -1) as api_series_id,
+			coalesce((select name from seasons where pk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)), '-') as current_season,
+			coalesce((select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id), -1) as current_season_id,
+			coalesce((select max(raceweek)+1 from raceweeks where fk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)), -1) as current_week
 		from series s
 		order by s.name asc, s.short_name asc`); err != nil {
 		return nil, err
@@ -93,9 +95,10 @@ func (db *database) GetActiveSeries() ([]Series, error) {
 			s.regex,
 			s.colorscheme,
 			s.active,
-			(select name from seasons where pk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_season,
-			(select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id) as current_season_id,
-			(select max(raceweek)+1 from raceweeks where fk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)) as current_week
+			coalesce(s.api_series_id, -1) as api_series_id,
+			coalesce((select name from seasons where pk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)), '-') as current_season,
+			coalesce((select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id), -1) as current_season_id,
+			coalesce((select max(raceweek)+1 from raceweeks where fk_season_id = (select max(ss.pk_season_id) from seasons ss where ss.fk_series_id = s.pk_series_id)), -1) as current_week
 		from series s
 		where s.active = 't'
 		order by s.name asc, s.short_name asc`); err != nil {
@@ -150,6 +153,32 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 		where s.fk_series_id = $1
 			join series ss on (ss.pk_series_id = s.fk_series_id)
 		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
+		return nil, err
+	}
+	return seasons, nil
+}
+
+func (db *database) GetSeasonsByAPISeriesID(apiSeriesID int) ([]Season, error) {
+	seasons := make([]Season, 0)
+	if err := db.Select(&seasons, `
+		select
+			s.pk_season_id,
+			s.fk_series_id,
+			s.year,
+			s.quarter,
+			s.category,
+			s.name,
+			s.short_name,
+			s.banner_image,
+			s.panel_image,
+			s.logo_image,
+			s.timeslots,
+			s.startdate,
+			ss.colorscheme as series_colorscheme
+		from seasons s
+			join series ss on (ss.pk_series_id = s.fk_series_id)
+		where ss.api_series_id = $1
+		order by s.name asc, s.year desc, s.quarter desc`, apiSeriesID); err != nil {
 		return nil, err
 	}
 	return seasons, nil

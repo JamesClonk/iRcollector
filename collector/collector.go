@@ -66,13 +66,14 @@ func (c *Collector) Run() {
 		}
 
 		if len(seasons) == 0 {
+			collectorErrors.Inc()
 			log.Errorf("no seasons found, couldn't get anything from iRacing!")
 		}
 		for _, series := range series {
 			var found bool
 			namerx := regexp.MustCompile(series.SeriesRegex)
 			for _, season := range seasons {
-				if namerx.MatchString(season.SeriesName) { // does seriesName match seriesRegex from db?
+				if namerx.MatchString(season.SeasonName) || season.SeriesID == series.APISeriesID { // does SeasonName match seriesRegex from db? or the API provided SeriesID?
 					log.Infof("Season: %s", season)
 					found = true
 
@@ -82,47 +83,49 @@ func (c *Collector) Run() {
 						log.Errorf("could not get season [%d] from database: %v", season.SeasonID, err)
 					}
 					if err != nil || len(s.SeasonName) == 0 || len(s.Timeslots) == 0 || s.StartDate.Before(time.Now().AddDate(-1, -1, -1)) {
-						// figure out which season we are in
-						var year, quarter int
-						if seasonrx.MatchString(season.SeasonNameShort) {
-							var err error
-							year, err = strconv.Atoi(season.SeasonNameShort[0:4])
-							if err != nil {
-								collectorErrors.Inc()
-								log.Errorf("could not convert SeasonNameShort [%s] to year: %v", season.SeasonNameShort, err)
+						year := season.Year
+						quarter := season.Quarter
+						if year < 2018 || quarter < 1 { // figure out which season we are in incase API returns nonsense
+							if seasonrx.MatchString(season.SeasonNameShort) {
+								var err error
+								year, err = strconv.Atoi(season.SeasonNameShort[0:4])
+								if err != nil {
+									collectorErrors.Inc()
+									log.Errorf("could not convert SeasonNameShort [%s] to year: %v", season.SeasonNameShort, err)
+								}
+								quarter, err = strconv.Atoi(season.SeasonNameShort[12:13])
+								if err != nil {
+									collectorErrors.Inc()
+									log.Errorf("could not convert SeasonNameShort [%s] to quarter: %v", season.SeasonNameShort, err)
+								}
 							}
-							quarter, err = strconv.Atoi(season.SeasonNameShort[12:13])
-							if err != nil {
-								collectorErrors.Inc()
-								log.Errorf("could not convert SeasonNameShort [%s] to quarter: %v", season.SeasonNameShort, err)
+							// if we couldn't figure out the season from SeasonNameShort, then we'll try to calculate it based on 2018S1 which started on 2017-12-12
+							if year < 2018 || quarter < 1 {
+								iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
+								daysSince := int(time.Since(iracingEpoch).Hours() / 24)
+								weeksSince := daysSince / 7
+								seasonsSince := int(weeksSince / 13)
+								yearsSince := int(seasonsSince / 4)
+								year = 2018 + yearsSince
+								quarter = (seasonsSince % 4) + 1
 							}
-						}
-						// if we couldn't figure out the season from SeasonNameShort, then we'll try to calculate it based on 2018S1 which started on 2017-12-12
-						if year < 2010 || quarter < 1 {
-							iracingEpoch := time.Date(2017, 12, 12, 0, 0, 0, 0, time.UTC)
-							daysSince := int(time.Since(iracingEpoch).Hours() / 24)
-							weeksSince := daysSince / 7
-							seasonsSince := int(weeksSince / 13)
-							yearsSince := int(seasonsSince / 4)
-							year = 2018 + yearsSince
-							quarter = (seasonsSince % 4) + 1
 						}
 
-						startDate := database.WeekStart(time.Now().UTC().AddDate(0, 0, -7*season.RaceWeek))
-						log.Infof("Current season: %dS%d, started: %s", year, quarter, startDate)
+						// startDate := database.WeekStart(time.Now().UTC().AddDate(0, 0, -7*season.RaceWeek))
+						log.Infof("Current season: %dS%d, started: %s", year, quarter, season.StartDate)
 
 						// upsert current season
 						s.SeriesID = series.SeriesID
 						s.SeasonID = season.SeasonID
 						s.Year = year
 						s.Quarter = quarter
-						s.Category = season.Category
+						s.Category = "-" // pointless since this can change each week / for each track
 						s.SeasonName = season.SeasonName
 						s.SeasonNameShort = season.SeasonNameShort
-						s.BannerImage = season.BannerImage
-						s.PanelImage = season.PanelImage
-						s.LogoImage = season.LogoImage
-						s.StartDate = startDate
+						s.BannerImage = "-" // does not exist anymore in new API
+						s.PanelImage = "-"  // does not exist anymore in new API
+						s.LogoImage = "-"   // does not exist anymore in new API
+						s.StartDate = season.StartDate
 						if err := c.db.UpsertSeason(s); err != nil {
 							collectorErrors.Inc()
 							log.Errorf("could not store season [%s] in database: %v", season.SeasonName, err)
@@ -158,7 +161,7 @@ func (c *Collector) Run() {
 				}
 			}
 			if !found {
-				log.Errorf("no seasons found for series [%s], couldn't match anything to regex [%s]!", series.SeriesName, series.SeriesRegex)
+				log.Errorf("no seasons found for series [%s], couldn't match anything to regex [%s] or API series_id [%d]!", series.SeriesName, series.SeriesRegex, series.APISeriesID)
 			}
 		}
 
@@ -172,7 +175,7 @@ func (c *Collector) Run() {
 			forceUpdate = true
 			forceUpdateCounter = 0
 		}
-		time.Sleep(99 * time.Minute)
+		time.Sleep(66 * time.Minute)
 	}
 }
 

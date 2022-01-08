@@ -12,6 +12,7 @@ type Series struct {
 	SeriesRegex     string `db:"regex"`
 	ColorScheme     string `db:"colorscheme"`
 	Active          string `db:"active"`
+	APISeriesID     int    `db:"api_series_id"`
 	CurrentSeason   string `db:"current_season"`
 	CurrentSeasonID int    `db:"current_season_id"`
 	CurrentWeek     int    `db:"current_week"`

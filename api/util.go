@@ -52,6 +52,22 @@ func (u *unixTime) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type weekStartDate struct {
+	time.Time
+}
+
+func (w *weekStartDate) UnmarshalJSON(data []byte) error {
+	input := strings.Replace(decode(string(data)), `"`, "", -1)
+
+	t, err := time.Parse("2006-01-02", input)
+	if err != nil {
+		return err
+	}
+
+	*w = weekStartDate{t}
+	return nil
+}
+
 type encodedTime struct {
 	Time time.Time
 }

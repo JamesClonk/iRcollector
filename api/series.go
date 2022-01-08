@@ -2,37 +2,22 @@ package api
 
 import (
 	"encoding/json"
-	"regexp"
 
 	"github.com/JamesClonk/iRcollector/log"
 )
 
 func (c *Client) GetCurrentSeasons() ([]Season, error) {
 	log.Infoln("Get current seasons ...")
-	data, err := c.Get("https://members.iracing.com/membersite/member/Series.do")
+	data, err := c.FollowLink("https://members-ng.iracing.com/data/series/seasons")
 	if err != nil {
 		return nil, err
 	}
 
-	// use ugly regexp to jsonify javascript code
-	seriesRx := regexp.MustCompile(`seriesobj=([^;]*);`)
-	elementRx := regexp.MustCompile(`[\s]+([[:word:]]+)(:.+\n)`)
-	removeRx := regexp.MustCompile(`"[[:word:]]+":[\s]*[[:alpha:]]+.*,\n`)
-
 	seasons := make([]Season, 0)
-	for _, match := range seriesRx.FindAllSubmatch(data, -1) {
-		if len(match) == 2 {
-			jsonObject := elementRx.ReplaceAll(match[1], []byte(`"${1}"${2}`))
-			jsonObject = removeRx.ReplaceAll(jsonObject, nil)
-
-			var season Season
-			if err := json.Unmarshal(jsonObject, &season); err != nil {
-				clientRequestError.Inc()
-				log.Errorf("could not parse series json object: %s", jsonObject)
-				return nil, err
-			}
-			seasons = append(seasons, season)
-		}
+	if err := json.Unmarshal(data, &seasons); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal season data: %s", data)
+		return nil, err
 	}
 	return seasons, nil
 }

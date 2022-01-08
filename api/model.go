@@ -103,6 +103,7 @@ func (rrr SessionResultRow) String() string {
 }
 
 /*
+	OLD - deprecated
 	seriesobj={
 		seasonID:2391,
 		ignoreLicenseForPractice:true,
@@ -139,26 +140,235 @@ func (rrr SessionResultRow) String() string {
 		trackconfig:"Grand Prix",
 		heatracing:false
 	};
+	NEW - members-ng
+[
+  {
+    "active": true,
+    "allowed_season_members": null,
+    "car_class_ids": [
+      15
+    ],
+    "car_types": [
+      {
+        "car_type": "prototype"
+      },
+      {
+        "car_type": "road"
+      }
+    ],
+    "caution_laps_do_not_count": false,
+    "complete": false,
+    "cross_license": false,
+    "driver_change_rule": 0,
+    "driver_changes": false,
+    "drops": 4,
+    "fixed_setup": true,
+    "green_white_checkered_limit": 0,
+    "grid_by_class": true,
+    "ignore_license_for_practice": true,
+    "incident_limit": 25,
+    "incident_warn_mode": 1,
+    "incident_warn_param1": 17,
+    "incident_warn_param2": 0,
+    "is_heat_racing": false,
+    "license_group": 3,
+    "license_group_types": [
+      {
+        "license_group_type": 3
+      }
+    ],
+    "lucky_dog": false,
+    "max_team_drivers": 1,
+    "max_weeks": 12,
+    "min_team_drivers": 1,
+    "multiclass": false,
+    "must_use_diff_tire_types_in_race": false,
+    "next_race_session": null,
+    "num_opt_laps": 0,
+    "official": true,
+    "op_duration": 120,
+    "open_practice_session_type_id": 170,
+    "qualifier_must_start_race": false,
+    "race_week": 3,
+    "race_week_to_make_divisions": 0,
+    "reg_user_count": 95,
+    "region_competition": true,
+    "restrict_by_member": false,
+    "restrict_to_car": false,
+    "restrict_viewing": false,
+    "schedule_description": "Races every odd 2 hours on the hour",
+    "schedules": [
+      {
+        "season_id": 3492,
+        "race_week_num": 0,
+        "series_id": 74,
+        "series_name": "Radical Racing Challenge C",
+        "season_name": "Radical Racing Challenge- 2022 Season 1 - Fixed",
+        "schedule_name": "rad - Races every odd 2 hours on the hour  - timed",
+        "start_date": "2021-12-14",
+        "simulated_time_multiplier": 1,
+        "race_lap_limit": 14,
+        "race_time_limit": null,
+        "start_type": "Standing",
+        "restart_type": "Double-file Back",
+        "qual_attached": true,
+        "yellow_flags": true,
+        "special_event_type": null,
+        "track": {
+          "track_id": 413,
+          "track_name": "Hungaroring",
+          "category_id": 2,
+          "category": "road"
+        },
+        "weather": {
+          "type": 3,
+          "temp_units": 0,
+          "temp_value": 78,
+          "rel_humidity": 55,
+          "fog": 0,
+          "wind_dir": 0,
+          "wind_units": 0,
+          "wind_value": 2,
+          "skies": 1,
+          "weather_var_initial": 0,
+          "weather_var_ongoing": 0,
+          "time_of_day": 1,
+          "simulated_start_time": "2022-04-01T08:25:00",
+          "simulated_time_offsets": [
+            0,
+            0
+          ],
+          "simulated_time_multiplier": 1,
+          "simulated_start_utc_time": "2022-04-01T06:25:00Z"
+        },
+        "track_state": {
+          "leave_marbles": false
+        },
+        "car_restrictions": [
+          {
+            "car_id": 13,
+            "race_setup_id": 151976,
+            "max_pct_fuel_fill": 50,
+            "weight_penalty_kg": 0,
+            "power_adjust_pct": 0,
+            "max_dry_tire_sets": 0
+          }
+        ]
+      },
+.....
+      {
+        "season_id": 3492,
+        "race_week_num": 11,
+        "series_id": 74,
+        "series_name": "Radical Racing Challenge C",
+        "season_name": "Radical Racing Challenge- 2022 Season 1 - Fixed",
+        "schedule_name": "rad - Races every odd 2 hours on the hour  - timed nurb",
+        "start_date": "2022-03-01",
+        "simulated_time_multiplier": 1,
+        "race_lap_limit": 5,
+        "race_time_limit": null,
+        "start_type": "Standing",
+        "restart_type": "Double-file Back",
+        "qual_attached": false,
+        "yellow_flags": true,
+        "special_event_type": null,
+        "track": {
+          "track_id": 249,
+          "track_name": "Nürburgring Nordschleife",
+          "config_name": "Industriefahrten",
+          "category_id": 2,
+          "category": "road"
+        },
+        "weather": {
+          "type": 3,
+          "temp_units": 0,
+          "temp_value": 78,
+          "rel_humidity": 55,
+          "fog": 0,
+          "wind_dir": 0,
+          "wind_units": 0,
+          "wind_value": 2,
+          "skies": 1,
+          "weather_var_initial": 0,
+          "weather_var_ongoing": 0,
+          "time_of_day": 1,
+          "simulated_start_time": "2022-04-01T09:20:00",
+          "simulated_time_offsets": [
+            0
+          ],
+          "simulated_time_multiplier": 1,
+          "simulated_start_utc_time": "2022-04-01T07:20:00Z"
+        },
+        "track_state": {
+          "leave_marbles": false
+        },
+        "car_restrictions": [
+          {
+            "car_id": 13,
+            "race_setup_id": 144263,
+            "max_pct_fuel_fill": 50,
+            "weight_penalty_kg": 0,
+            "power_adjust_pct": 0,
+            "max_dry_tire_sets": 0
+          }
+        ]
+      }
+    ],
+    "season_id": 3492,
+    "season_name": "Radical Racing Challenge- 2022 Season 1 - Fixed",
+    "season_quarter": 1,
+    "season_short_name": "2022 Season 1",
+    "season_year": 2022,
+    "send_to_open_practice": true,
+    "series_id": 74,
+    "start_date": "2021-12-14T00:00:00Z",
+    "start_on_qual_tire": false,
+    "track_types": [
+      {
+        "track_type": "road"
+      }
+    ],
+    "unsport_conduct_rule_mode": 3
+  },
 */
 type Season struct {
-	SeasonID        int           `json:"seasonID"`
-	Category        string        `json:"category"`
-	CategoryID      int           `json:"catid"`
-	SeasonName      string        `json:"seasonName"`
-	SeasonNameShort string        `json:"seasonName_short"`
-	SeriesName      string        `json:"seriesName"`
-	SeriesNameShort string        `json:"seriesName_short"`
-	BannerImage     string        `json:"banner_img"`
-	PanelImage      string        `json:"col_color_img"`
-	LogoImage       string        `json:"exp_img"`
-	RaceWeek        int           `json:"raceweek"`
-	TrackID         int           `json:"trackid"`
-	TrackName       encodedString `json:"trackname"`
-	TrackConfig     string        `json:"trackconfig"`
+	SeriesID        int       `json:"series_id"`
+	SeasonID        int       `json:"season_id"`
+	SeasonName      string    `json:"season_name"`
+	SeasonNameShort string    `json:"season_short_name"`
+	Year            int       `json:"season_year"`
+	Quarter         int       `json:"season_quarter"`
+	StartDate       time.Time `json:"start_date"`
+	RaceWeek        int       `json:"race_week"`
+	Active          bool      `json:"active"`
+	CarClasses      []int     `json:"car_class_ids"`
+	DropWeeks       int       `json:"drops"`
+	MaxWeeks        int       `json:"max_weeks"`
+	FixedSetup      bool      `json:"fixed_setup"`
+	Official        bool      `json:"official"`
+	TrackTypes      []struct {
+		TrackType string `json:"track_type"`
+	} `json:"track_types"`
+	Schedule []struct {
+		SeriesID   int           `json:"series_id"`
+		SeasonID   int           `json:"season_id"`
+		SeasonName string        `json:"season_name"`
+		SeriesName string        `json:"series_name"`
+		StartDate  weekStartDate `json:"start_date"`
+		RaceWeek   int           `json:"race_week_num"`
+		RaceLaps   int           `json:"race_lap_limit"`
+		RaceTime   int           `json:"race_time_limit"`
+		Track      struct {
+			TrackID  int           `json:"track_id"`
+			Name     encodedString `json:"track_name"`
+			Config   string        `json:"config_name"`
+			Category string        `json:"category"`
+		} `json:"track_types"`
+	} `json:"schedules"`
 }
 
 func (s Season) String() string {
-	return fmt.Sprintf("[ Name: %s, Week: %d, Track: %s - %s ]", s.SeasonName, s.RaceWeek, s.TrackName, s.TrackConfig)
+	return fmt.Sprintf("[ ID: %d, Name: %s, Current Week: %d ]", s.SeasonID, s.SeasonName, s.RaceWeek)
 }
 
 type RaceWeekResult struct {
