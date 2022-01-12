@@ -29,6 +29,71 @@ type Member struct {
 		Color        string  `json:"color"`
 	} `json:"licenses"`
 }
+type MemberStats struct {
+	CategoryID        int     `json:"category_id"`
+	Category          string  `json:"category"`
+	Starts            int     `json:"starts"`
+	Wins              int     `json:"wins"`
+	Top5              int     `json:"top5"`
+	Poles             int     `json:"poles"`
+	AvgStartPosition  float64 `json:"avg_start_position"`
+	AvgFinishPosition float64 `json:"avg_finish_position"`
+	Laps              int     `json:"laps"`
+	LapsLed           int     `json:"laps_led"`
+	AvgIncidents      float64 `json:"avg_incidents"`
+	AvgPoints         float64 `json:"avg_points"`
+	WinPercentage     float64 `json:"win_percentage"`
+	Top5Percentage    float64 `json:"top5_percentage"`
+	LapsLedPercentage float64 `json:"laps_led_percentage"`
+	TotalClubPoints   int     `json:"total_club_points"`
+}
+type MemberRecentRace struct {
+	SeasonID           int       `json:"season_id"`
+	SeriesID           int       `json:"series_id"`
+	SeriesName         string    `json:"series_name"`
+	CarID              int       `json:"car_id"`
+	CarClassID         int       `json:"car_class_id"`
+	LicenseLevel       int       `json:"license_level"`
+	SessionStart       time.Time `json:"session_start_time"`
+	WinnerName         string    `json:"winner_name"`
+	WinnerLicenseLevel int       `json:"winner_license_level"`
+	StartPosition      int       `json:"start_position"`
+	FinishPosition     int       `json:"finish_position"`
+	Laps               int       `json:"laps"`
+	LapsLed            int       `json:"laps_led"`
+	Incidents          int       `json:"incidents"`
+	ClubPoints         int       `json:"club_points"`
+	ChampPoints        int       `json:"points"`
+	SOF                int       `json:"strength_of_field"`
+	SubsessionID       int       `json:"subsession_id"`
+	OldSubLevel        int       `json:"old_sub_level"`
+	NewSubLevel        int       `json:"new_sub_level"`
+	OldIRating         int       `json:"oldi_rating"`
+	NewIRating         int       `json:"newi_rating"`
+	Track              struct {
+		ID   int    `json:"track_id"`
+		Name string `json:"track_name"`
+	} `json:"track"`
+}
+type MemberYearlyStats struct {
+	CategoryID        int     `json:"category_id"`
+	Category          string  `json:"category"`
+	Starts            int     `json:"starts"`
+	Wins              int     `json:"wins"`
+	Top5              int     `json:"top5"`
+	Poles             int     `json:"poles"`
+	AvgStartPosition  float64 `json:"avg_start_position"`
+	AvgFinishPosition float64 `json:"avg_finish_position"`
+	Laps              int     `json:"laps"`
+	LapsLed           int     `json:"laps_led"`
+	AvgIncidents      float64 `json:"avg_incidents"`
+	AvgPoints         float64 `json:"avg_points"`
+	WinPercentage     float64 `json:"win_percentage"`
+	Top5Percentage    float64 `json:"top5_percentage"`
+	LapsLedPercentage float64 `json:"laps_led_percentage"`
+	TotalClubPoints   int     `json:"total_club_points"`
+	Year              int     `json:"year"`
+}
 
 type SessionResult struct {
 	PointsType         string             `json:"pointstype"` // race or timetrial
