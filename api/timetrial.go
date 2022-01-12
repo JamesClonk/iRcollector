@@ -52,3 +52,57 @@ func (c *Client) GetTimeTrialResults(seasonID, carClassID, raceweek int) ([]Time
 
 	return results, nil
 }
+
+/*
+new API:
+https://members-ng.iracing.com/data/results/season_results?season_id=3492&event_type=4&race_week_num=4
+gives a list of ALL session results for that week. (event_type: 2 - Practice; 3 - Qualify; 4 - Time Trial; 5 - Race)
+{
+  "results_list": [
+    {
+      "race_week_num": 4,
+      "event_type": 4,
+      "event_type_name": "Time Trial",
+      "start_time": "2022-01-11T00:28:00Z",
+      "session_id": 168567014,
+      "subsession_id": 43787657,
+      "official_session": true,
+      "event_strength_of_field": -1,
+      "event_best_lap_time": 902184,
+      "num_cautions": -1,
+      "num_caution_laps": -1,
+      "num_lead_changes": -1,
+      "num_drivers": 1,
+      "track": {
+        "track_id": 212,
+        "track_name": "Autódromo José Carlos Pace",
+        "config_name": "Grand Prix"
+      }
+    },
+    {
+      "race_week_num": 4,
+      "event_type": 4,
+      "event_type_name": "Time Trial",
+      "start_time": "2022-01-12T11:36:00Z",
+      "session_id": 168676261,
+      "subsession_id": 43813512,
+      "official_session": true,
+      "event_strength_of_field": -1,
+      "event_best_lap_time": 906302,
+      "num_cautions": -1,
+      "num_caution_laps": -1,
+      "num_lead_changes": -1,
+      "num_drivers": 1,
+      "track": {
+        "track_id": 212,
+        "track_name": "Autódromo José Carlos Pace",
+        "config_name": "Grand Prix"
+      }
+    }
+  ],
+  "event_type": 4,
+  "success": true,
+  "season_id": 3492,
+  "race_week_num": 4
+}
+*/
