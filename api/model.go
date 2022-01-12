@@ -9,22 +9,25 @@ type Link struct {
 	Target string `json:"link"`
 }
 
-type CareerStats struct {
-	Wins                    int     `json:"wins"`
-	TotalClubPoints         int     `json:"totalclubpoints"`
-	WinPercentage           float64 `json:"winPerc"`
-	Poles                   int     `json:"poles"`
-	AverageStart            float64 `json:"avgStart"`
-	AverageFinish           float64 `json:"avgFinish"`
-	Top5Percentage          float64 `json:"top5Perc"`
-	TotalLaps               int     `json:"totalLaps"`
-	AverageIncidentsPerRace float64 `json:"avgIncPerRace"`
-	AveragePointsPerRace    float64 `json:"avgPtsPerRace"`
-	LapsLed                 int     `json:"lapsLed"`
-	Top5                    int     `json:"top5"`
-	LapsLedPercentage       float64 `json:"lapsLedPerc"`
-	Category                string  `json:"category"`
-	Starts                  int     `json:"starts"`
+type Member struct {
+	ID          int       `json:"cust_id"`
+	Name        string    `json:"display_name"`
+	LastLogin   time.Time `json:"last_login"`
+	MemberSince string    `json:"member_since"`
+	ClubID      int       `json:"club_id"`
+	Club        string    `json:"club_name"`
+	Licenses    []struct {
+		CategoryID   int     `json:"category_id"`
+		Category     string  `json:"category"`
+		LicenseLevel int     `json:"license_level"`
+		SafetyRating float64 `json:"safety_rating"`
+		CPI          float64 `json:"cpi"`
+		IRating      int     `json:"irating"`
+		TTRating     int     `json:"tt_rating"`
+		GroupID      int     `json:"group_id"`
+		Group        string  `json:"group_name"`
+		Color        string  `json:"color"`
+	} `json:"licenses"`
 }
 
 type SessionResult struct {
