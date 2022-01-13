@@ -771,15 +771,15 @@ func (db *database) InsertRaceWeekResult(result RaceWeekResult) (RaceWeekResult,
 
 	stmt, err := db.Preparex(`
 		insert into raceweek_results
-			(fk_raceweek_id, starttime, car_class_id, fk_track_id, session_id, subsession_id, official, size, sof)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`)
+			(fk_raceweek_id, starttime, fk_track_id, session_id, subsession_id, official, size, sof)
+		values ($1, $2, $3, $4, $5, $6, $7, $8)`)
 	if err != nil {
 		return RaceWeekResult{}, err
 	}
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(
-		result.RaceWeekID, result.StartTime, result.CarClassID, result.TrackID,
+		result.RaceWeekID, result.StartTime, result.TrackID,
 		result.SessionID, result.SubsessionID, result.Official, result.SizeOfField, result.StrengthOfField); err != nil {
 		return RaceWeekResult{}, err
 	}
@@ -792,7 +792,6 @@ func (db *database) GetRaceWeekResultBySubsessionID(subsessionID int) (RaceWeekR
 		select
 			r.fk_raceweek_id,
 			r.starttime,
-			r.car_class_id,
 			r.fk_track_id,
 			r.session_id,
 			r.subsession_id,
@@ -812,7 +811,6 @@ func (db *database) GetRaceWeekResultsBySeasonIDAndWeek(seasonID, week int) ([]R
 		select
 			rr.fk_raceweek_id,
 			rr.starttime,
-			rr.car_class_id,
 			rr.fk_track_id,
 			rr.session_id,
 			rr.subsession_id,

@@ -1,6 +1,8 @@
 package collector
 
 import (
+	"time"
+
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
 )
@@ -25,7 +27,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int, forceUpdate bool) {
 		log.Warnf("no results found for season [%d], week [%d]", seasonID, week)
 		return
 	}
-	trackID := results[0].TrackID
+	trackID := results[0].Track.ID
 
 	// insert raceweek
 	r := database.RaceWeek{
@@ -59,8 +61,7 @@ func (c *Collector) CollectRaceWeek(seasonID, week int, forceUpdate bool) {
 		rs := database.RaceWeekResult{
 			RaceWeekID:      raceweek.RaceWeekID,
 			StartTime:       r.StartTime,
-			CarClassID:      r.CarClassID,
-			TrackID:         r.TrackID,
+			TrackID:         r.Track.ID,
 			SessionID:       r.SessionID,
 			SubsessionID:    r.SubsessionID,
 			Official:        r.Official,
@@ -83,10 +84,13 @@ func (c *Collector) CollectRaceWeek(seasonID, week int, forceUpdate bool) {
 		if !result.Official {
 			continue
 		}
+		time.Sleep(999 * time.Minute)
+		continue
 
 		// insert race statistics
 		c.CollectRaceStats(result, forceUpdate)
 	}
+	time.Sleep(999 * time.Minute)
 
 	// upsert time rankings for all car classes of raceweek
 	c.CollectTimeRankings(raceweek)

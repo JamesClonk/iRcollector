@@ -103,7 +103,6 @@ type RaceWeek struct {
 type RaceWeekResult struct {
 	RaceWeekID      int       `db:"fk_raceweek_id"` // foreign-key to RaceWeek.RaceWeekID
 	StartTime       time.Time `db:"starttime"`
-	CarClassID      int       `db:"car_class_id"`
 	TrackID         int       `db:"fk_track_id"` // foreign-key to Track.TrackID
 	SessionID       int       `db:"session_id"`
 	SubsessionID    int       `db:"subsession_id"`

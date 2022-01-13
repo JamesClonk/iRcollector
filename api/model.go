@@ -439,17 +439,73 @@ func (s Season) String() string {
 	return fmt.Sprintf("[ ID: %d, Name: %s, Current Week: %d ]", s.SeasonID, s.SeasonName, s.RaceWeek)
 }
 
+/*
+{
+  "results_list": [
+    {
+      "race_week_num": 4,
+      "event_type": 5, // 2 - Practice; 3 - Qualify; 4 - Time Trial; 5 - Race
+      "event_type_name": "Race",
+      "start_time": "2022-01-11T01:00:00Z",
+      "session_id": 168568727,
+      "subsession_id": 43788046,
+      "official_session": true,
+      "event_strength_of_field": 2887,
+      "event_best_lap_time": 879897,
+      "num_cautions": 0,
+      "num_caution_laps": 0,
+      "num_lead_changes": 2,
+      "num_drivers": 21,
+      "track": {
+        "track_id": 212,
+        "track_name": "Autódromo José Carlos Pace",
+        "config_name": "Grand Prix"
+      }
+    },
+    {
+      "race_week_num": 4,
+      "event_type": 5,
+      "event_type_name": "Race",
+      "start_time": "2022-01-11T01:00:00Z",
+      "session_id": 168568727,
+      "subsession_id": 43788047,
+      "official_session": true,
+      "event_strength_of_field": 1098,
+      "event_best_lap_time": 898271,
+      "num_cautions": 0,
+      "num_caution_laps": 0,
+      "num_lead_changes": 0,
+      "num_drivers": 21,
+      "track": {
+        "track_id": 212,
+        "track_name": "Autódromo José Carlos Pace",
+        "config_name": "Grand Prix"
+      }
+    }
+  ],
+  "event_type": 5,
+  "success": true,
+  "season_id": 3492,
+  "race_week_num": 4
+}
+*/
 type RaceWeekResult struct {
 	SeasonID        int       `json:"seasonID"` // foreign-key to Season
-	RaceWeek        int       `json:"raceweek"`
+	RaceWeek        int       `json:"race_week_num"`
+	EventType       int       `json:"event_type"` // 2 - Practice; 3 - Qualify; 4 - Time Trial; 5 - Race
+	EventTypeName   string    `json:"event_type_name"`
 	StartTime       time.Time `json:"start_time"`
-	CarClassID      int       `json:"carclassid"`
-	TrackID         int       `json:"trackid"`
 	SessionID       int       `json:"sessionid"`
 	SubsessionID    int       `json:"subsessionid"`
-	Official        bool      `json:"officialsession"`
-	SizeOfField     int       `json:"sizeoffield"`
-	StrengthOfField int       `json:"strengthoffield"`
+	Official        bool      `json:"official_session"`
+	SizeOfField     int       `json:"num_drivers"`
+	StrengthOfField int       `json:"event_strength_of_field"`
+	BestLapTime     int       `json:"event_best_lap_time"`
+	Track           struct {
+		ID     int    `json:"trackid"`
+		Name   string `json:"track_name"`
+		Config string `json:"config_name"`
+	} `json:"track"`
 }
 
 func (rws RaceWeekResult) String() string {
