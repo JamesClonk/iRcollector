@@ -168,11 +168,9 @@ type RaceResult struct {
 	SafetyRatingAfter        int     `db:"new_safety_rating"`
 	CPIBefore                float64 `db:"old_cpi"`
 	CPIAfter                 float64 `db:"new_cpi"`
-	LicenseGroup             int     `db:"license_group"`
 	AggregateChampPoints     int     `db:"aggregate_champpoints"`
 	ChampPoints              int     `db:"champpoints"`
 	ClubPoints               int     `db:"clubpoints"`
-	CarNumber                int     `db:"car_number"`
 	CarID                    int     `db:"fk_car_id"`
 	CarClassID               int     `db:"car_class_id"`
 	StartingPosition         int     `db:"starting_position"`

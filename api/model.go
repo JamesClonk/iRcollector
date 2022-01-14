@@ -686,7 +686,14 @@ type SessionResult struct {
 			PackageID int `json:"package_id"`
 		} `json:"cars_in_class"`
 	} `json:"car_classes"`
-	Results []SessionResultRow `json:"session_results"`
+	Results []struct {
+		SimsessionNumber   int                `json:"simsession_number"`
+		SimsessionType     int                `json:"simsession_type"`
+		SimsessionTypeName string             `json:"simsession_type_name"` // Open Practice, Lone Qualifying, Race
+		SimsessionSubtype  int                `json:"simsession_subtype"`
+		SimsessionName     string             `json:"simsession_name"` // PRACTICE, QUALIFY, RACE
+		Results            []SessionResultRow `json:"results"`
+	} `json:"session_results"`
 }
 
 func (rr SessionResult) String() string {
@@ -695,93 +702,54 @@ func (rr SessionResult) String() string {
 }
 
 type SessionResultRow struct {
-	RacerID                  int           `json:"custid"`
-	RacerName                encodedString `json:"displayname"`
-	IRatingBefore            int           `json:"oldirating"`
-	IRatingAfter             int           `json:"newirating"`
-	TTRatingBefore           int           `json:"oldttrating"`
-	TTRatingAfter            int           `json:"newttrating"`
-	LicenseLevelBefore       int           `json:"oldlicenselevel"` // "20", "19", "13", etc..
-	LicenseLevelAfter        int           `json:"newlicenselevel"` // "20", "19", "13", etc..
-	LicenseGroup             int           `json:"licensegroup"`    // "20", "19", "13", etc..
-	AggregateChampPoints     int           `json:"aggchamppoints"`
-	ChampPoints              int           `json:"champpoints"`
-	ClubPoints               int           `json:"clubpoints"`
-	ClubID                   int           `json:"clubid"`
-	Club                     encodedString `json:"clubname"`   // "Finland"
-	CarNumber                string        `json:"carnum"`     // "8"
-	CarID                    int           `json:"carid"`      // 105
-	CarClassID               int           `json:"carclassid"` // 871
-	StartingPosition         int           `json:"startpos"`
-	Position                 int           `json:"pos"`
-	FinishingPosition        int           `json:"finishpos"`
-	FinishingPositionInClass int           `json:"finishposinclass"`
-	Division                 int           `json:"division"`
-	CPIBefore                float64       `json:"oldcpi"`
-	CPIAfter                 float64       `json:"newcpi"`
-	SafetyRatingAfter        int           `json:"newsublevel"`      // new SR, "499", etc..
-	SafetyRatingBefore       int           `json:"oldsublevel"`      // new SR, "499", etc..
-	Interval                 int           `json:"interval"`         // "0", "184634", etc..
-	ClassInterval            int           `json:"classinterval"`    // "0", "184634", etc..
-	AvgLaptime               laptime       `json:"avglap"`           // "1255213"
-	BestLaptime              laptime       `json:"bestlaptime"`      // "1255213"
-	BestNLapsTime            laptime       `json:"bestnlapstime"`    // "1255213" // TT
-	LapsCompleted            int           `json:"lapscomplete"`     // "21"
-	LapsLead                 int           `json:"lapslead"`         // "21"
-	Incidents                int           `json:"incidents"`        // "0"
-	DropRacepoints           int           `json:"dropracepoints"`   // ??? 0 or 1
-	ReasonOut                string        `json:"reasonout"`        // "Running", "Disconnected", etc..
-	SessionStartTime         int64         `json:"sessionstarttime"` // "1557066600000"
-	SessionNum               int           `json:"simsesnum"`        // 0 race, -1 quali or practice, -2 practice
-	SessionName              string        `json:"simsesname"`       // should be "RACE"
-	SessionType              string        `json:"simsestypename"`   // should be "Race"
+	RacerID                  int     `json:"cust_id"`
+	RacerName                string  `json:"display_name"`
+	CarID                    int     `json:"car_id"`       // 105
+	CarClassID               int     `json:"car_class_id"` // 15
+	Division                 int     `json:"division"`
+	DivisionName             string  `json:"division_name"`
+	ClubID                   int     `json:"club_id"`
+	ClubName                 string  `json:"club_name"`      // Finland
+	ClubShortName            string  `json:"club_shortname"` // Finland
+	Position                 int     `json:"position"`
+	StartingPosition         int     `json:"starting_position"`
+	FinishingPosition        int     `json:"finish_position"`
+	FinishingPositionInClass int     `json:"finish_position_in_class"`
+	ChampPoints              int     `json:"champ_points"`
+	ClubPoints               int     `json:"club_points"`
+	AggregateChampPoints     int     `json:"aggregate_champ_points"`
+	Incidents                int     `json:"incidents"`       // 5
+	LapsCompleted            int     `json:"laps_complete"`   // 21
+	LapsLead                 int     `json:"laps_lead"`       // 21
+	AvgLaptime               laptime `json:"average_lap"`     // 1255213
+	BestLap                  int     `json:"best_lap_num"`    // 7
+	BestLaptime              laptime `json:"best_lap_time"`   // 1255213
+	BestNLap                 int     `json:"best_nlaps_num"`  // 4 // TT
+	BestNLapsTime            laptime `json:"best_nlaps_time"` // 1255213 // TT
+	Interval                 int     `json:"interval"`        // 0, 184634, etc..
+	ClassInterval            int     `json:"class_interval"`  // 0, 184634, etc..
+	IRatingBefore            int     `json:"oldi_rating"`
+	IRatingAfter             int     `json:"newi_rating"`
+	TTRatingBefore           int     `json:"old_ttrating"`
+	TTRatingAfter            int     `json:"new_ttrating"`
+	LicenseLevelBefore       int     `json:"old_license_level"` // 20, 19, 13, etc..
+	LicenseLevelAfter        int     `json:"new_license_level"` // 20, 19, 13, etc..
+	CPIBefore                float64 `json:"old_cpi"`
+	CPIAfter                 float64 `json:"new_cpi"`
+	SafetyRatingBefore       int     `json:"old_sub_level"` // new SR, 499, etc..
+	SafetyRatingAfter        int     `json:"new_sub_level"` // new SR, 499, etc..
+	ReasonOutID              int     `json:"reason_out_id"` // 0
+	ReasonOut                string  `json:"reason_out"`    // "Running", "Disconnected", etc..
+	AI                       bool    `json:"ai"`
 }
 
 func (rrr SessionResultRow) String() string {
 	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
-		rrr.FinishingPosition, rrr.RacerName, rrr.Club, rrr.AvgLaptime, rrr.LapsLead, rrr.LapsCompleted,
+		rrr.FinishingPosition, rrr.RacerName, rrr.ClubName, rrr.AvgLaptime, rrr.LapsLead, rrr.LapsCompleted,
 		rrr.IRatingAfter, rrr.Incidents, rrr.ChampPoints, rrr.ClubPoints, rrr.ReasonOut)
 }
 
 /*
-	OLD - deprecated
-	seriesobj={
-		seasonID:2391,
-		ignoreLicenseForPractice:true,
-		groupid:0,
-		category:"Road",
-		catid:2,
-		allowedLicense:0,
-		seasonName:"iRacing Formula 3.5 Championship - 2019 Season 2",
-		seasonName_short:"2019 Season 2",
-		seriesName:"iRacing Formula 3.5 Championship",
-		seriesName_short:"iRacing Formula 3.5 Championship",
-		banner_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/banner.jpg",
-		col_gray_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/whats_hot.jpg",
-		col_color_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/panel_list.jpg",
-		exp_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/logo.jpg",
-		header_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/series/seriesid_359/title_list.gif",
-		allowedLicGroups:[],
-		allowedlicenses:[],
-		minlic:null,
-		maxlic:null,
-		serieslicgroup:null,
-		memberlicgroup:5,
-		memberliclevel:20,
-		cars:SeriesPage.cars_arr,
-		tracks:SeriesPage.tracks_arr,
-		tracks_schedule:tracks_schedule_arr,
-		content:SeriesPage.cars_arr.concat(SeriesPage.tracks_arr),
-		unowned:unowned,
-		preselect:preselect_arr,
-		raceweek:6,
-		trackid:250,
-		trackpkgID:185,
-		trackname:"Nürburgring Grand-Prix-Strecke",
-		trackconfig:"Grand Prix",
-		heatracing:false
-	};
-	NEW - members-ng
 [
   {
     "active": true,
@@ -1000,10 +968,10 @@ type Season struct {
 		RaceLaps   int           `json:"race_lap_limit"`
 		RaceTime   int           `json:"race_time_limit"`
 		Track      struct {
-			TrackID  int           `json:"track_id"`
-			Name     encodedString `json:"track_name"`
-			Config   string        `json:"config_name"`
-			Category string        `json:"category"`
+			TrackID  int    `json:"track_id"`
+			Name     string `json:"track_name"`
+			Config   string `json:"config_name"`
+			Category string `json:"category"`
 		} `json:"track_types"`
 	} `json:"schedules"`
 }
@@ -1086,96 +1054,71 @@ func (rws RaceWeekResult) String() string {
 }
 
 /*
-	OLD - deprecated
-	trackobj={
-		name						: "Circuit Park Zandvoort",
-		category					: "Road",
-		configname					: "Oostelijk",
-		trackID						: 151,
-		sku							: 10198,
-		price						: "14.95",
-		pkgID						: 92,
-		freeWithSubscription		: "false",
-		discountGroupNames			: "[track_paid]",
-		col_color_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/pi_track_cpz.jpg",
-		col_gray_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/",
-		exp_logo_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/tle_logo_cpz.jpg",
-		exp_map_img					: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/tle_wmap_cpz.jpg",
-		exp_config_img				: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/tle_tmap_cpz_oostelijk.jpg",
-		banner_img					: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/b_track_cpz_oostelijk.jpg",
-		header_img					: "https://d3bxz2vegbjddt.cloudfront.net/members/member_images/tracks/zandvoort/pt_track_cpz.gif",
-		owned						: (owned_idx!=-1)?1:0,
-		update						: (owned_idx!=-1)?OwnedContentListing[owned_idx].update:0,
-		download					: isdownload,
-		url							: "http://www.cpz.nl/",
-		nlapsQual					: 2,
-		nlapsSolo					: 6,
-		IsPurchasable				: Boolean('true')
-	};
-	NEW - members-ng
-	  {
-	    "ai_enabled": false,
-	    "award_exempt": true,
-	    "category": "road",
-	    "category_id": 2,
-	    "closes": "2018-10-31",
-	    "config_name": "Full Course",
-	    "corners_per_lap": 7,
-	    "created": "2006-04-04T19:10:00Z",
-	    "free_with_subscription": true,
-	    "fully_lit": false,
-	    "grid_stalls": 62,
-	    "has_opt_path": false,
-	    "has_short_parade_lap": true,
-	    "has_svg_map": true,
-	    "is_dirt": false,
-	    "is_oval": false,
-	    "lap_scoring": 0,
-	    "latitude": 41.9282105,
-	    "location": "Lakeville, Connecticut, USA",
-	    "longitude": -73.3839642,
-	    "max_cars": 66,
-	    "night_lighting": false,
-	    "nominal_lap_time": 53.54668,
-	    "number_pitstalls": 34,
-	    "opens": "2018-04-01",
-	    "package_id": 9,
-	    "pit_road_speed_limit": 45,
-	    "price": 0,
-	    "priority": 1,
-	    "purchasable": true,
-	    "qualify_laps": 2,
-	    "restart_on_left": false,
-	    "retired": false,
-	    "search_filters": "road,lrp",
-	    "site_url": "http://www.limerock.com/",
-	    "sku": 10021,
-	    "solo_laps": 8,
-	    "start_on_left": false,
-	    "supports_grip_compound": false,
-	    "tech_track": false,
-	    "time_zone": "America/New_York",
-	    "track_config_length": 1.53,
-	    "track_dirpath": "limerock\\full",
-	    "track_id": 1,
-	    "track_name": "[Legacy] Lime Rock Park - 2008",
-	    "track_types": [
-	      {
-	        "track_type": "road"
-	      }
-	    ]
-	  },
+[
+  {
+    "ai_enabled": false,
+    "award_exempt": true,
+    "category": "road",
+    "category_id": 2,
+    "closes": "2018-10-31",
+    "config_name": "Full Course",
+    "corners_per_lap": 7,
+    "created": "2006-04-04T19:10:00Z",
+    "free_with_subscription": true,
+    "fully_lit": false,
+    "grid_stalls": 62,
+    "has_opt_path": false,
+    "has_short_parade_lap": true,
+    "has_svg_map": true,
+    "is_dirt": false,
+    "is_oval": false,
+    "lap_scoring": 0,
+    "latitude": 41.9282105,
+    "location": "Lakeville, Connecticut, USA",
+    "longitude": -73.3839642,
+    "max_cars": 66,
+    "night_lighting": false,
+    "nominal_lap_time": 53.54668,
+    "number_pitstalls": 34,
+    "opens": "2018-04-01",
+    "package_id": 9,
+    "pit_road_speed_limit": 45,
+    "price": 0,
+    "priority": 1,
+    "purchasable": true,
+    "qualify_laps": 2,
+    "restart_on_left": false,
+    "retired": false,
+    "search_filters": "road,lrp",
+    "site_url": "http://www.limerock.com/",
+    "sku": 10021,
+    "solo_laps": 8,
+    "start_on_left": false,
+    "supports_grip_compound": false,
+    "tech_track": false,
+    "time_zone": "America/New_York",
+    "track_config_length": 1.53,
+    "track_dirpath": "limerock\\full",
+    "track_id": 1,
+    "track_name": "[Legacy] Lime Rock Park - 2008",
+    "track_types": [
+      {
+        "track_type": "road"
+      }
+    ]
+  },
+]
 */
 type Track struct {
-	TrackID     int           `json:"track_id"`
-	Name        encodedString `json:"track_name"`
-	Category    string        `json:"category"`
-	CategoryID  int           `json:"category_id"`
-	Config      string        `json:"config_name"`
-	Free        bool          `json:"free_with_subscription"`
-	Retired     bool          `json:"retired"`
-	IsDirt      bool          `json:"is_dirt"`
-	IsOval      bool          `json:"is_oval"`
+	TrackID     int    `json:"track_id"`
+	Name        string `json:"track_name"`
+	Category    string `json:"category"`
+	CategoryID  int    `json:"category_id"`
+	Config      string `json:"config_name"`
+	Free        bool   `json:"free_with_subscription"`
+	Retired     bool   `json:"retired"`
+	IsDirt      bool   `json:"is_dirt"`
+	IsOval      bool   `json:"is_oval"`
 	BannerImage string
 	PanelImage  string
 	LogoImage   string
@@ -1196,125 +1139,101 @@ func (t Track) String() string {
 }
 
 /*
-	OLD - deprecated
-	carobj={
-		pkgID:179,
-		sku:10389,
-		owned:(owned_idx!=-1)?1:0,
-		download:isdownload,
-		update:(owned_idx!=-1)?OwnedContentListing[owned_idx].update:0,
-		carID:64,
-		name:"Aston Martin DBR9 GT1",
-		desc:"Aston Martin DBR9 GT1",
-		model: "GT1",
-		make:"Aston Martin",
-		price:"11.95",
-		hp:"600.0",
-		weight:"2579.0",
-		w2pRatio:"4.2",
-		freeWithSubscription:"false",
-		discountGroupNames:"[road car]",
-		collapsedimg:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/panel_list.jpg",
-		collapsedimg_gray:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/panel_list.jpg",
-		expanded_car_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/profile.jpg",
-		expanded_mfr_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/logo.jpg",
-		header_img:"https://d3bxz2vegbjddt.cloudfront.net/members/member_images/cars/astonmartin/title_list.gif"
-	};
-	NEW - members-ng
-		[
-		  {
-		    "ai_enabled": true,
-		    "allow_number_colors": false,
-		    "allow_number_font": false,
-		    "allow_sponsor1": true,
-		    "allow_sponsor2": true,
-		    "allow_wheel_color": true,
-		    "award_exempt": false,
-		    "car_dirpath": "rt2000",
-		    "car_id": 1,
-		    "car_name": "Skip Barber Formula 2000",
-		    "car_name_abbreviated": "SBRS",
-		    "car_types": [
-		      {
-		        "car_type": "openwheel"
-		      },
-		      {
-		        "car_type": "road"
-		      },
-		      {
-		        "car_type": "rt2000"
-		      },
-		      {
-		        "car_type": "sbrs"
-		      },
-		      {
-		        "car_type": "skippy"
-		      }
-		    ],
-		    "car_weight": 1250,
-		    "categories": [
-		      "road"
-		    ],
-		    "created": "2006-05-03T19:10:00Z",
-		    "free_with_subscription": false,
-		    "has_headlights": false,
-		    "has_multiple_dry_tire_types": false,
-		    "hp": 132,
-		    "max_power_adjust_pct": 0,
-		    "max_weight_penalty_kg": 250,
-		    "min_power_adjust_pct": -5,
-		    "package_id": 15,
-		    "patterns": 3,
-		    "price": 11.95,
-		    "retired": false,
-		    "search_filters": "road,openwheel,skippy,sbrs,rt2000",
-		    "sku": 10009
-		  },
-		  {
-		    "ai_enabled": false,
-		    "allow_number_colors": true,
-		    "allow_number_font": true,
-		    "allow_sponsor1": true,
-		    "allow_sponsor2": true,
-		    "allow_wheel_color": false,
-		    "award_exempt": false,
-		    "car_dirpath": "solstice",
-		    "car_id": 3,
-		    "car_make": "Pontiac",
-		    "car_model": "Solstice",
-		    "car_name": "Pontiac Solstice",
-		    "car_name_abbreviated": "SOL",
-		    "car_types": [
-		      {
-		        "car_type": "road"
-		      },
-		      {
-		        "car_type": "sportscar"
-		      }
-		    ],
-		    "car_weight": 2948,
-		    "categories": [
-		      "road"
-		    ],
-		    "created": "2006-10-17T19:30:00Z",
-		    "free_with_subscription": true,
-		    "has_headlights": true,
-		    "has_multiple_dry_tire_types": false,
-		    "hp": 177,
-		    "max_power_adjust_pct": 0,
-		    "max_weight_penalty_kg": 250,
-		    "min_power_adjust_pct": -5,
-		    "package_id": 20,
-		    "patterns": 30,
-		    "price": 0,
-		    "retired": false,
-		    "search_filters": "road,sportscar",
-		    "sku": 10011
-		  }
+	[
+	  {
+	    "ai_enabled": true,
+	    "allow_number_colors": false,
+	    "allow_number_font": false,
+	    "allow_sponsor1": true,
+	    "allow_sponsor2": true,
+	    "allow_wheel_color": true,
+	    "award_exempt": false,
+	    "car_dirpath": "rt2000",
+	    "car_id": 1,
+	    "car_name": "Skip Barber Formula 2000",
+	    "car_name_abbreviated": "SBRS",
+	    "car_types": [
+	      {
+	        "car_type": "openwheel"
+	      },
+	      {
+	        "car_type": "road"
+	      },
+	      {
+	        "car_type": "rt2000"
+	      },
+	      {
+	        "car_type": "sbrs"
+	      },
+	      {
+	        "car_type": "skippy"
+	      }
+	    ],
+	    "car_weight": 1250,
+	    "categories": [
+	      "road"
+	    ],
+	    "created": "2006-05-03T19:10:00Z",
+	    "free_with_subscription": false,
+	    "has_headlights": false,
+	    "has_multiple_dry_tire_types": false,
+	    "hp": 132,
+	    "max_power_adjust_pct": 0,
+	    "max_weight_penalty_kg": 250,
+	    "min_power_adjust_pct": -5,
+	    "package_id": 15,
+	    "patterns": 3,
+	    "price": 11.95,
+	    "retired": false,
+	    "search_filters": "road,openwheel,skippy,sbrs,rt2000",
+	    "sku": 10009
+	  },
+	  {
+	    "ai_enabled": false,
+	    "allow_number_colors": true,
+	    "allow_number_font": true,
+	    "allow_sponsor1": true,
+	    "allow_sponsor2": true,
+	    "allow_wheel_color": false,
+	    "award_exempt": false,
+	    "car_dirpath": "solstice",
+	    "car_id": 3,
+	    "car_make": "Pontiac",
+	    "car_model": "Solstice",
+	    "car_name": "Pontiac Solstice",
+	    "car_name_abbreviated": "SOL",
+	    "car_types": [
+	      {
+	        "car_type": "road"
+	      },
+	      {
+	        "car_type": "sportscar"
+	      }
+	    ],
+	    "car_weight": 2948,
+	    "categories": [
+	      "road"
+	    ],
+	    "created": "2006-10-17T19:30:00Z",
+	    "free_with_subscription": true,
+	    "has_headlights": true,
+	    "has_multiple_dry_tire_types": false,
+	    "hp": 177,
+	    "max_power_adjust_pct": 0,
+	    "max_weight_penalty_kg": 250,
+	    "min_power_adjust_pct": -5,
+	    "package_id": 20,
+	    "patterns": 30,
+	    "price": 0,
+	    "retired": false,
+	    "search_filters": "road,sportscar",
+	    "sku": 10011
+	  }
+  ]
 */
 type Car struct {
-	CarID        int           `json:"car_id"`
-	Name         encodedString `json:"car_name"`
+	CarID        int    `json:"car_id"`
+	Name         string `json:"car_name"`
 	Description  string
 	Model        string `json:"car_model"`
 	Make         string `json:"car_make"`

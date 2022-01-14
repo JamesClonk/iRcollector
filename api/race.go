@@ -46,7 +46,7 @@ func (c *Client) GetSessionResult(subsessionID int) (SessionResult, error) {
 		return SessionResult{}, errors.New("empty session result")
 	}
 
-	var result SessionResult
+	var results SessionResult
 	if err := json.Unmarshal(data, &results); err != nil {
 		clientRequestError.Inc()
 		log.Errorf("could not unmarshal subsession data: %s", data)

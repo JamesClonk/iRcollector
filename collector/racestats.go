@@ -1,7 +1,6 @@
 package collector
 
 import (
-	"strconv"
 	"strings"
 	"time"
 
@@ -39,8 +38,8 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 	// insert race stats
 	stats := database.RaceStats{
 		SubsessionID:       result.SubsessionID,
-		StartTime:          result.StartTime.Time,
-		SimulatedStartTime: result.SimulatedStartTime.Time,
+		StartTime:          result.StartTime,
+		SimulatedStartTime: result.Weather.SimulatedStartTimeUTC.Add(time.Minute * time.Duration(result.Weather.SimulatedStartTimeUTCOffset)),
 		LeadChanges:        result.LeadChanges,
 		Laps:               result.Laps,
 		Cautions:           result.Cautions,
@@ -48,8 +47,8 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 		CornersPerLap:      result.CornersPerLap,
 		AvgLaptime:         database.Laptime(int(result.AvgLaptime)),
 		AvgQualiLaps:       result.AvgQualiLaps,
-		WeatherRH:          result.WeatherRH,
-		WeatherTemp:        result.WeatherTemp.IntValue(),
+		WeatherRH:          result.Weather.RelHumidity.IntValue(),
+		WeatherTemp:        result.Weather.TempValue.IntValue(),
 	}
 	racestats, err := c.db.InsertRaceStats(stats)
 	if err != nil {
@@ -64,63 +63,62 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 	}
 	log.Debugf("Race stats: %s", racestats)
 
-	// go through race / driver results
-	for _, row := range result.Rows {
-		if row.SessionNum != 0 ||
-			strings.ToLower(row.SessionName) != "race" ||
-			strings.ToLower(row.SessionType) != "race" {
+	// go through simsessions
+	for _, simsession := range result.Results {
+		if simsession.SimsessionNumber != 0 ||
+			strings.ToLower(simsession.SimsessionName) != "race" ||
+			strings.ToLower(simsession.SimsessionTypeName) != "race" {
 			// skip anything that's not a race session entry
 			continue
 		}
-		//log.Debugf("Driver result: %s", row)
+		// go through race / driver results
+		for _, row := range simsession.Results {
+			//log.Debugf("Driver result: %s", row)
+			// update club & driver
+			driver, ok := c.UpsertDriverAndClub(row.RacerName, row.ClubName, row.RacerID, row.ClubID)
+			if !ok {
+				continue
+			}
 
-		// update club & driver
-		driver, ok := c.UpsertDriverAndClub(row.RacerName.String(), row.Club.String(), row.RacerID, row.ClubID)
-		if !ok {
-			continue
+			// insert driver result
+			rr := database.RaceResult{
+				SubsessionID:             result.SubsessionID,
+				Driver:                   driver,
+				IRatingBefore:            row.IRatingBefore,
+				IRatingAfter:             row.IRatingAfter,
+				LicenseLevelBefore:       row.LicenseLevelBefore,
+				LicenseLevelAfter:        row.LicenseLevelAfter,
+				SafetyRatingBefore:       row.SafetyRatingBefore,
+				SafetyRatingAfter:        row.SafetyRatingAfter,
+				CPIBefore:                row.CPIBefore,
+				CPIAfter:                 row.CPIAfter,
+				AggregateChampPoints:     row.AggregateChampPoints,
+				ChampPoints:              row.ChampPoints,
+				ClubPoints:               row.ClubPoints,
+				CarID:                    row.CarID,
+				CarClassID:               row.CarClassID,
+				StartingPosition:         row.StartingPosition,
+				Position:                 row.Position,
+				FinishingPosition:        row.FinishingPosition,
+				FinishingPositionInClass: row.FinishingPositionInClass,
+				Division:                 row.Division,
+				Interval:                 row.Interval,
+				ClassInterval:            row.ClassInterval,
+				AvgLaptime:               database.Laptime(int(row.AvgLaptime)),
+				LapsCompleted:            row.LapsCompleted,
+				LapsLead:                 row.LapsLead,
+				Incidents:                row.Incidents,
+				ReasonOut:                row.ReasonOut,
+				SessionStartTime:         result.StartTime.Unix() * 1000,
+			}
+			result, err := c.db.InsertRaceResult(rr)
+			if err != nil {
+				collectorErrors.Inc()
+				log.Errorf("could not store race result [subsessionID:%d] for driver [%d:%s] in database: %v",
+					result.SubsessionID, driver.DriverID, driver.Name, err)
+				continue
+			}
+			log.Debugf("Race result: %s", result)
 		}
-
-		// insert driver result
-		carnum, _ := strconv.Atoi(row.CarNumber)
-		rr := database.RaceResult{
-			SubsessionID:             result.SubsessionID,
-			Driver:                   driver,
-			IRatingBefore:            row.IRatingBefore,
-			IRatingAfter:             row.IRatingAfter,
-			LicenseLevelBefore:       row.LicenseLevelBefore,
-			LicenseLevelAfter:        row.LicenseLevelAfter,
-			SafetyRatingBefore:       row.SafetyRatingBefore,
-			SafetyRatingAfter:        row.SafetyRatingAfter,
-			CPIBefore:                row.CPIBefore,
-			CPIAfter:                 row.CPIAfter,
-			LicenseGroup:             row.LicenseGroup,
-			AggregateChampPoints:     row.AggregateChampPoints,
-			ChampPoints:              row.ChampPoints,
-			ClubPoints:               row.ClubPoints,
-			CarNumber:                carnum,
-			CarID:                    row.CarID,
-			CarClassID:               row.CarClassID,
-			StartingPosition:         row.StartingPosition,
-			Position:                 row.Position,
-			FinishingPosition:        row.FinishingPosition,
-			FinishingPositionInClass: row.FinishingPositionInClass,
-			Division:                 row.Division,
-			Interval:                 row.Interval,
-			ClassInterval:            row.ClassInterval,
-			AvgLaptime:               database.Laptime(int(row.AvgLaptime)),
-			LapsCompleted:            row.LapsCompleted,
-			LapsLead:                 row.LapsLead,
-			Incidents:                row.Incidents,
-			ReasonOut:                row.ReasonOut,
-			SessionStartTime:         row.SessionStartTime,
-		}
-		result, err := c.db.InsertRaceResult(rr)
-		if err != nil {
-			collectorErrors.Inc()
-			log.Errorf("could not store race result [subsessionID:%d] for driver [%d:%s] in database: %v",
-				result.SubsessionID, driver.DriverID, driver.Name, err)
-			continue
-		}
-		log.Debugf("Race result: %s", result)
 	}
 }

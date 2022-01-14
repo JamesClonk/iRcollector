@@ -40,7 +40,7 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 				// check if this particular TT ranking already exists and does not need an update
 				tr, err := c.db.GetTimeRankingByRaceWeekDriverAndCar(raceweek.RaceWeekID, ranking.DriverID, ranking.CarID)
 				if err == nil && tr.TimeTrialFastestLap > 0 && tr.TimeTrialSubsessionID > 0 &&
-					tr.TimeTrial.Seconds() == database.Laptime(ranking.TimeTrialTime.Laptime()).Seconds() {
+					tr.TimeTrial.Milliseconds() == database.Laptime(ranking.TimeTrialTime.Laptime()).Milliseconds() {
 					log.Infof("Existing time trial fastest lap found, no need for querying it again: %s", tr)
 					ttFastestLap = tr.TimeTrialFastestLap
 				} else {
@@ -55,9 +55,16 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 						if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
 							log.Errorf("invalid time trial result: %v", ttResult)
 						} else {
-							for _, row := range ttResult.Rows {
-								if row.RacerID == ranking.DriverID {
-									ttFastestLap = database.Laptime(int(row.BestLaptime))
+							for _, simsession := range ttResult.Results {
+								if strings.ToLower(simsession.SimsessionName) != "time trial" {
+									continue // skip if not a time trial
+								}
+								for _, row := range simsession.Results {
+									if row.RacerID == ranking.DriverID {
+										if ttFastestLap > database.Laptime(int(row.BestLaptime)) {
+											ttFastestLap = database.Laptime(int(row.BestLaptime))
+										}
+									}
 								}
 							}
 						}

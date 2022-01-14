@@ -21,6 +21,13 @@ func (l Laptime) Seconds() int {
 	return int((time.Duration(l*100) * time.Microsecond).Seconds())
 }
 
+func (l Laptime) Milliseconds() int64 {
+	if l == 0 {
+		return 0
+	}
+	return (time.Duration(l*100) * time.Microsecond).Milliseconds()
+}
+
 func WeekStart(reference time.Time) time.Time {
 	y, m, d := reference.Date()
 

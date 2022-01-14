@@ -175,7 +175,7 @@ func (c *Collector) Run() {
 			forceUpdate = true
 			forceUpdateCounter = 0
 		}
-		time.Sleep(66 * time.Minute)
+		time.Sleep(33 * time.Minute)
 	}
 }
 

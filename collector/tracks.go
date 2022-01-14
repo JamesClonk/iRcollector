@@ -31,7 +31,7 @@ func (c *Collector) CollectTracks() {
 		// upsert track
 		t := database.Track{
 			TrackID:     track.TrackID,
-			Name:        track.Name.String(),
+			Name:        track.Name,
 			Config:      track.Config,
 			Category:    track.Category,
 			Free:        track.Free,

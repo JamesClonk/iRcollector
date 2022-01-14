@@ -132,3 +132,10 @@ func (l laptime) Seconds() int {
 	}
 	return int((time.Duration(l*100) * time.Microsecond).Seconds())
 }
+
+func (l laptime) Milliseconds() int64 {
+	if l == 0 {
+		return 0
+	}
+	return (time.Duration(l*100) * time.Microsecond).Milliseconds()
+}
