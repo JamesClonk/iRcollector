@@ -490,19 +490,19 @@ func (s Season) String() string {
 }
 */
 type RaceWeekResult struct {
-	SeasonID        int       `json:"seasonID"` // foreign-key to Season
+	SeasonID        int       `json:"season_id"` // foreign-key to Season
 	RaceWeek        int       `json:"race_week_num"`
 	EventType       int       `json:"event_type"` // 2 - Practice; 3 - Qualify; 4 - Time Trial; 5 - Race
 	EventTypeName   string    `json:"event_type_name"`
 	StartTime       time.Time `json:"start_time"`
-	SessionID       int       `json:"sessionid"`
-	SubsessionID    int       `json:"subsessionid"`
+	SessionID       int       `json:"session_id"`
+	SubsessionID    int       `json:"subsession_id"`
 	Official        bool      `json:"official_session"`
 	SizeOfField     int       `json:"num_drivers"`
 	StrengthOfField int       `json:"event_strength_of_field"`
 	BestLapTime     int       `json:"event_best_lap_time"`
 	Track           struct {
-		ID     int    `json:"trackid"`
+		ID     int    `json:"track_id"`
 		Name   string `json:"track_name"`
 		Config string `json:"config_name"`
 	} `json:"track"`

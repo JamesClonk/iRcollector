@@ -1,8 +1,6 @@
 package collector
 
 import (
-	"time"
-
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
 )
@@ -84,13 +82,10 @@ func (c *Collector) CollectRaceWeek(seasonID, week int, forceUpdate bool) {
 		if !result.Official {
 			continue
 		}
-		time.Sleep(999 * time.Minute)
-		continue
 
 		// insert race statistics
 		c.CollectRaceStats(result, forceUpdate)
 	}
-	time.Sleep(999 * time.Minute)
 
 	// upsert time rankings for all car classes of raceweek
 	c.CollectTimeRankings(raceweek)
