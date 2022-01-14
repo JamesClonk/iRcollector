@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JamesClonk/iRcollector/collector"
 	"github.com/JamesClonk/iRcollector/database"
@@ -30,6 +31,9 @@ func main() {
 	log.Infoln("port:", port)
 	log.Infoln("log level:", level)
 	log.Infoln("auth username:", username)
+
+	// wait before connecting to DB
+	time.Sleep(time.Second * 33)
 
 	// setup database
 	adapter := database.NewAdapter()
