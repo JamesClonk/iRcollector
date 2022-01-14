@@ -16,7 +16,7 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 	if !forceUpdate {
 		racestats, err := c.db.GetRaceStatsBySubsessionID(rws.SubsessionID)
 		if err == nil && racestats.SubsessionID == rws.SubsessionID && racestats.Laps > 0 &&
-			int(time.Since(racestats.StartTime).Seconds()) >= racestats.AvgLaptime.Seconds()*racestats.Laps*20 {
+			int(time.Since(racestats.StartTime).Seconds()) >= racestats.AvgLaptime.Seconds()*racestats.Laps*25 {
 			log.Infof("Existing race stats found, no need for update: %s", racestats)
 			return
 		}
