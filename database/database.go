@@ -150,8 +150,8 @@ func (db *database) GetSeasonsBySeriesID(seriesID int) ([]Season, error) {
 			s.startdate,
 			ss.colorscheme as series_colorscheme
 		from seasons s
-		where s.fk_series_id = $1
 			join series ss on (ss.pk_series_id = s.fk_series_id)
+		where s.fk_series_id = $1
 		order by s.name asc, s.year desc, s.quarter desc`, seriesID); err != nil {
 		return nil, err
 	}
