@@ -16,10 +16,11 @@ func (c *Collector) CollectTTResults(raceweek database.RaceWeek) {
 	}
 
 	for _, carClassID := range carIDs {
-		results, err := c.client.GetTimeTrialResults(raceweek.SeasonID, carClassID, raceweek.RaceWeek+1)
+		results, err := c.client.GetTimeTrialResults(raceweek.SeasonID, carClassID, raceweek.RaceWeek)
 		if err != nil {
 			collectorErrors.Inc()
-			log.Errorf("could not get time trial results for [season_id:%d,raceweek:%d,car_class_id:%d]: %v", raceweek.SeasonID, raceweek.RaceWeek+1, carClassID, err)
+			log.Errorf("could not get time trial results for [season_id:%d,raceweek:%d,car_class_id:%d]: %v",
+				raceweek.SeasonID, raceweek.RaceWeek, carClassID, err)
 			continue
 		}
 		for _, result := range results {

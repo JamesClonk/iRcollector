@@ -1278,17 +1278,17 @@ func (r TimeRanking) String() string {
 type TimeTrialResult struct {
 	SeasonID   int           `json:"seasonID"` // foreign-key to Season
 	RaceWeek   int           `json:"raceweek"`
-	DriverID   int           `json:"custid"`
-	DriverName encodedString `json:"displayname"`
-	ClubID     int           `json:"clubid"`
-	ClubName   encodedString `json:"clubname"`
-	CarID      int           `json:"carid"`
+	DriverID   int           `json:"cust_id"`
+	DriverName encodedString `json:"display_name"`
+	ClubID     int           `json:"club_id"`
+	ClubName   encodedString `json:"club_name"`
+	CarID      int           `json:"car_id"`
 	Rank       int           `json:"rank"`
 	Position   int           `json:"pos"`
 	Points     int           `json:"points"`
 	Starts     int           `json:"starts"`
 	Wins       int           `json:"wins"`
-	Weeks      int           `json:"week"`
+	Weeks      int           `json:"weeks_counted"`
 	Dropped    int           `json:"dropped"`
 	Division   int           `json:"division"`
 }
