@@ -600,7 +600,12 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 			coalesce(tr.time_trial_subsession_id, 0),
 			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
-			coalesce(tr.race, 0),
+			coalesce((select min(rr.best_laptime)
+				from race_results rr
+					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
+				where rr.fk_driver_id = d.pk_driver_id
+				and rwr.fk_raceweek_id = rw.pk_raceweek_id
+				and rr.best_laptime > 0), 0),
 			tr.license_class,
 			tr.irating
 		from time_rankings tr
@@ -659,7 +664,12 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			coalesce(tr.time_trial_subsession_id, 0),
 			coalesce(tr.time_trial_fastest_lap, 0),
 			coalesce(tr.time_trial, 0),
-			coalesce(tr.race, 0),
+			coalesce((select min(rr.best_laptime)
+				from race_results rr
+					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
+				where rr.fk_driver_id = d.pk_driver_id
+				and rwr.fk_raceweek_id = rw.pk_raceweek_id
+				and rr.best_laptime > 0), 0),
 			tr.license_class,
 			tr.irating
 		from time_rankings tr
@@ -1196,10 +1206,10 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 			aggregate_champpoints, champpoints, clubpoints,
 			fk_car_id, car_class_id,
 			starting_position, position, finishing_position, finishing_position_in_class,
-			division, interval, class_interval, avg_laptime,
+			division, interval, class_interval, avg_laptime, best_laptime,
 			laps_completed, laps_lead, incidents, reason_out, session_starttime)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-				$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`)
+				$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`)
 	if err != nil {
 		return RaceResult{}, err
 	}
@@ -1212,7 +1222,7 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 		result.AggregateChampPoints, result.ChampPoints, result.ClubPoints,
 		result.CarID, result.CarClassID,
 		result.StartingPosition, result.Position, result.FinishingPosition, result.FinishingPositionInClass,
-		result.Division, result.Interval, result.ClassInterval, result.AvgLaptime,
+		result.Division, result.Interval, result.ClassInterval, result.AvgLaptime, result.BestLaptime,
 		result.LapsCompleted, result.LapsLead, result.Incidents, result.ReasonOut, result.SessionStartTime); err != nil {
 		return RaceResult{}, err
 	}
@@ -1251,6 +1261,7 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 			r.interval,
 			r.class_interval,
 			r.avg_laptime,
+			r.best_laptime,
 			r.laps_completed,
 			r.laps_lead,
 			r.incidents,
@@ -1269,7 +1280,7 @@ func (db *database) GetRaceResultBySubsessionIDAndDriverID(subsessionID, driverI
 		&r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
 		&r.CarID, &r.CarClassID,
 		&r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
-		&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
+		&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime, &r.BestLaptime,
 		&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
 	); err != nil {
 		return r, err
@@ -1309,6 +1320,7 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 			r.interval,
 			r.class_interval,
 			r.avg_laptime,
+			r.best_laptime,
 			r.laps_completed,
 			r.laps_lead,
 			r.incidents,
@@ -1335,7 +1347,7 @@ func (db *database) GetRaceResultsBySubsessionID(subsessionID int) ([]RaceResult
 			&r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
 			&r.CarID, &r.CarClassID,
 			&r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
-			&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
+			&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime, &r.BestLaptime,
 			&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
 		); err != nil {
 			return nil, err
@@ -1377,6 +1389,7 @@ func (db *database) GetRaceResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceR
 			r.interval,
 			r.class_interval,
 			r.avg_laptime,
+			r.best_laptime,
 			r.laps_completed,
 			r.laps_lead,
 			r.incidents,
@@ -1406,7 +1419,7 @@ func (db *database) GetRaceResultsBySeasonIDAndWeek(seasonID, week int) ([]RaceR
 			&r.AggregateChampPoints, &r.ChampPoints, &r.ClubPoints,
 			&r.CarID, &r.CarClassID,
 			&r.StartingPosition, &r.Position, &r.FinishingPosition, &r.FinishingPositionInClass,
-			&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime,
+			&r.Division, &r.Interval, &r.ClassInterval, &r.AvgLaptime, &r.BestLaptime,
 			&r.LapsCompleted, &r.LapsLead, &r.Incidents, &r.ReasonOut, &r.SessionStartTime,
 		); err != nil {
 			return nil, err

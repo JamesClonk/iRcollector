@@ -181,6 +181,7 @@ type RaceResult struct {
 	Interval                 int     `db:"interval"`
 	ClassInterval            int     `db:"class_interval"`
 	AvgLaptime               Laptime `db:"avg_laptime"`
+	BestLaptime              Laptime `db:"best_laptime"`
 	LapsCompleted            int     `db:"laps_completed"`
 	LapsLead                 int     `db:"laps_lead"`
 	Incidents                int     `db:"incidents"`

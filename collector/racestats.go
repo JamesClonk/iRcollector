@@ -105,6 +105,7 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 				Interval:                 row.Interval,
 				ClassInterval:            row.ClassInterval,
 				AvgLaptime:               database.Laptime(int(row.AvgLaptime)),
+				BestLaptime:              database.Laptime(int(row.BestLaptime)),
 				LapsCompleted:            row.LapsCompleted,
 				LapsLead:                 row.LapsLead,
 				Incidents:                row.Incidents,

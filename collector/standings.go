@@ -27,7 +27,7 @@ func (c *Collector) CollectTTResults(raceweek database.RaceWeek) {
 			log.Debugf("Time trial result: %s", result)
 
 			// update club & driver
-			driver, ok := c.UpsertDriverAndClub(result.DriverName.String(), result.ClubName.String(), result.DriverID, result.ClubID)
+			driver, ok := c.UpsertDriverAndClub(result.DriverName, result.ClubName, result.DriverID, result.ClubID)
 			if !ok {
 				continue
 			}

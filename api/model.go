@@ -744,8 +744,8 @@ type SessionResultRow struct {
 }
 
 func (rrr SessionResultRow) String() string {
-	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
-		rrr.FinishingPosition, rrr.RacerName, rrr.ClubName, rrr.AvgLaptime, rrr.LapsLead, rrr.LapsCompleted,
+	return fmt.Sprintf("[ Pos: %d, Racer: %s, Club: %s, AvgLaptime: %s, BestLaptime: %s, LapsLead: %d, LapsCompleted: %d, iRating: %d, Incs: %d, ChampPoints: %d, ClubPoints: %d, Out: %s ]",
+		rrr.FinishingPosition, rrr.RacerName, rrr.ClubName, rrr.AvgLaptime, rrr.BestLaptime, rrr.LapsLead, rrr.LapsCompleted,
 		rrr.IRatingAfter, rrr.Incidents, rrr.ChampPoints, rrr.ClubPoints, rrr.ReasonOut)
 }
 
@@ -1271,26 +1271,37 @@ type TimeRanking struct {
 	TimeTrialSubsessionID int           `json:"timetrial_subsessionid"`
 }
 
+type TimeTrialRanking struct {
+	Rank          int     `json:"rank"`
+	DriverID      int     `json:"cust_id"`
+	DriverName    string  `json:"display_name"`
+	ClubID        int     `json:"club_id"`
+	ClubName      string  `json:"club_name"`
+	CarID         int     `json:"car_id"`
+	TrackID       int     `json:"track_id"`
+	BestNLapsTime laptime `json:"best_nlaps_time"`
+}
+
 func (r TimeRanking) String() string {
 	return fmt.Sprintf("[ Name: %s, Race: %s, TT: %s ]", r.DriverName, r.RaceTime, r.TimeTrialTime)
 }
 
 type TimeTrialResult struct {
-	SeasonID   int           `json:"seasonID"` // foreign-key to Season
-	RaceWeek   int           `json:"raceweek"`
-	DriverID   int           `json:"cust_id"`
-	DriverName encodedString `json:"display_name"`
-	ClubID     int           `json:"club_id"`
-	ClubName   encodedString `json:"club_name"`
-	CarID      int           `json:"car_id"`
-	Rank       int           `json:"rank"`
-	Position   int           `json:"pos"`
-	Points     int           `json:"points"`
-	Starts     int           `json:"starts"`
-	Wins       int           `json:"wins"`
-	Weeks      int           `json:"weeks_counted"`
-	Dropped    int           `json:"dropped"`
-	Division   int           `json:"division"`
+	SeasonID   int    `json:"seasonID"` // foreign-key to Season
+	RaceWeek   int    `json:"raceweek"`
+	DriverID   int    `json:"cust_id"`
+	DriverName string `json:"display_name"`
+	ClubID     int    `json:"club_id"`
+	ClubName   string `json:"club_name"`
+	CarID      int    `json:"car_id"`
+	Rank       int    `json:"rank"`
+	Position   int    `json:"pos"`
+	Points     int    `json:"points"`
+	Starts     int    `json:"starts"`
+	Wins       int    `json:"wins"`
+	Weeks      int    `json:"weeks_counted"`
+	Dropped    int    `json:"dropped"`
+	Division   int    `json:"division"`
 }
 
 func (r TimeTrialResult) String() string {
