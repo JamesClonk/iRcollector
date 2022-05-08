@@ -1209,7 +1209,35 @@ func (db *database) InsertRaceResult(result RaceResult) (RaceResult, error) {
 			division, interval, class_interval, avg_laptime, best_laptime,
 			laps_completed, laps_lead, incidents, reason_out, session_starttime)
 		values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-				$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)`)
+				$17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
+		on conflict on constraint uniq_race_result do update
+		set old_irating = excluded.old_irating,
+			new_irating = excluded.new_irating,
+			old_license_level = excluded.old_license_level,
+			new_license_level = excluded.new_license_level,
+			old_safety_rating = excluded.old_safety_rating,
+			new_safety_rating = excluded.new_safety_rating,
+			old_cpi = excluded.old_cpi,
+			new_cpi = excluded.new_cpi,
+			aggregate_champpoints = excluded.aggregate_champpoints,
+			champpoints = excluded.champpoints,
+			clubpoints = excluded.clubpoints,
+			fk_car_id = excluded.fk_car_id,
+			car_class_id = excluded.car_class_id,
+			starting_position = excluded.starting_position,
+			position = excluded.position,
+			finishing_position = excluded.finishing_position,
+			finishing_position_in_class = excluded.finishing_position_in_class,
+			division = excluded.division,
+			interval = excluded.interval,
+			class_interval = excluded.class_interval,
+			avg_laptime = excluded.avg_laptime,
+			best_laptime = excluded.best_laptime,
+			laps_completed = excluded.laps_completed,
+			laps_lead = excluded.laps_lead,
+			incidents = excluded.incidents,
+			reason_out = excluded.reason_out,
+			session_starttime = excluded.session_starttime`)
 	if err != nil {
 		return RaceResult{}, err
 	}

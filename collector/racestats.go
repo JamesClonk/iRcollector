@@ -112,14 +112,14 @@ func (c *Collector) CollectRaceStats(rws database.RaceWeekResult, forceUpdate bo
 				ReasonOut:                row.ReasonOut,
 				SessionStartTime:         result.StartTime.Unix() * 1000,
 			}
-			result, err := c.db.InsertRaceResult(rr)
+			raceResult, err := c.db.InsertRaceResult(rr)
 			if err != nil {
 				collectorErrors.Inc()
 				log.Errorf("could not store race result [subsessionID:%d] for driver [%d:%s] in database: %v",
 					result.SubsessionID, driver.DriverID, driver.Name, err)
 				continue
 			}
-			log.Debugf("Race result: %s", result)
+			log.Debugf("Race result: %s", raceResult)
 		}
 	}
 }
