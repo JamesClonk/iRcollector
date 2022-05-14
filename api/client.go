@@ -52,54 +52,6 @@ func New() *Client {
 	}
 }
 
-func (c *Client) Login() error {
-	log.Debugf("login to members ...")
-
-	location, err := time.LoadLocation("Europe/Zurich")
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	_, utcoffset := time.Now().In(location).Zone()
-
-	values := url.Values{}
-	values.Set("username", env.MustGet("IR_USERNAME"))
-	values.Set("password", env.MustGet("IR_PASSWORD"))
-	values.Set("utcoffset", fmt.Sprintf("%d", utcoffset/60))
-	values.Set("todaysdate", "")
-
-	req, err := http.NewRequest("POST", "https://members.iracing.com/membersite/Login", strings.NewReader(values.Encode()))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	client := &http.Client{
-		Jar: c.CookieJar,
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusTooManyRequests {
-		time.Sleep(1 * time.Minute)
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	//log.Debugf("%v", string(data))
-	if strings.Contains(strings.ToLower(string(data)), "email address or password was invalid") ||
-		strings.Contains(strings.ToLower(string(data)), "invalid email address or password") ||
-		strings.Contains(strings.ToLower(resp.Header.Get("Location")), "failedlogin") {
-		return fmt.Errorf("login failed")
-	}
-	return nil
-}
-
 func (c *Client) LoginNG() error {
 	log.Debugf("login to members-ng ...")
 
@@ -181,11 +133,6 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 
 	// relogin if needed
 	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
-		if err := c.Login(); err != nil {
-			clientLoginError.Inc()
-			time.Sleep(2222 * time.Millisecond) // safety sleep
-			return nil, err
-		}
 		if err := c.LoginNG(); err != nil {
 			clientLoginError.Inc()
 			time.Sleep(2222 * time.Millisecond) // safety sleep

@@ -535,9 +535,9 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 	stmt, err := tx.Preparex(`
 		insert into time_rankings
 			(fk_driver_id, fk_raceweek_id, fk_car_id, race, time_trial_subsession_id, time_trial, time_trial_fastest_lap, license_class, irating)
-		values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		values ($1, $2, $3, null, $4, $5, $6, $7, $8)
 		on conflict on constraint uniq_time_ranking do update
-		set race = excluded.race,
+		set race = null,
 			time_trial_subsession_id = excluded.time_trial_subsession_id,
 			time_trial_fastest_lap = excluded.time_trial_fastest_lap,
 			time_trial = excluded.time_trial,
@@ -561,7 +561,7 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 
 	if _, err = stmt.Exec(
 		r.Driver.DriverID, r.RaceWeek.RaceWeekID, r.Car.CarID,
-		null(r.Race), r.TimeTrialSubsessionID, null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
+		r.TimeTrialSubsessionID, null(r.TimeTrial), null(r.TimeTrialFastestLap), r.LicenseClass, r.IRating,
 	); err != nil {
 		tx.Rollback()
 		return err
@@ -605,7 +605,7 @@ func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, c
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
 				where rr.fk_driver_id = d.pk_driver_id
 				and rwr.fk_raceweek_id = rw.pk_raceweek_id
-				and rr.best_laptime > 0), 0),
+				and rr.best_laptime > 0), coalesce(tr.race, 0)),
 			tr.license_class,
 			tr.irating
 		from time_rankings tr
@@ -669,7 +669,7 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
 				where rr.fk_driver_id = d.pk_driver_id
 				and rwr.fk_raceweek_id = rw.pk_raceweek_id
-				and rr.best_laptime > 0), 0),
+				and rr.best_laptime > 0), coalesce(tr.race, 0)),
 			tr.license_class,
 			tr.irating
 		from time_rankings tr
@@ -847,7 +847,10 @@ func (db *database) GetRaceWeekMetricsBySeasonID(seasonID int) ([]RaceWeekMetric
 			max(rs.laps) as laps,
 			ceil(avg(rs.cautions)) as avg_cautions,
 			round(avg(rs.avg_laptime)) as avg_laptime,
-			min(tr.race) as fastest_laptime,
+			min(coalesce((select min(rr.best_laptime)
+				from race_results rr
+				where rwr.subsession_id = rr.fk_subsession_id
+				and rr.best_laptime > 0), coalesce(tr.race, 0))) as fastest_laptime,
 			max(rwr.sof) as max_sof,
 			min(rwr.sof) as min_sof,
 			round(avg(rwr.sof)) as avg_sof,
@@ -875,7 +878,10 @@ func (db *database) GetRaceWeekMetricsBySeasonIDAndWeek(seasonID, week int) (Rac
 			max(rs.laps) as laps,
 			ceil(avg(rs.cautions)) as avg_cautions,
 			round(avg(rs.avg_laptime)) as avg_laptime,
-			min(tr.race) as fastest_laptime,
+			min(coalesce((select min(rr.best_laptime)
+				from race_results rr
+				where rwr.subsession_id = rr.fk_subsession_id
+				and rr.best_laptime > 0), coalesce(tr.race, 0))) as fastest_laptime,
 			max(rwr.sof) as max_sof,
 			min(rwr.sof) as min_sof,
 			round(avg(rwr.sof)) as avg_sof,

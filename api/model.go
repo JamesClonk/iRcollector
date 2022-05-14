@@ -1257,33 +1257,20 @@ func (c Car) String() string {
 	return fmt.Sprintf("[ CarID: %d, Name: %s, Abbr: %s ]", c.CarID, c.Name, c.Abbreviation)
 }
 
-type TimeRanking struct {
-	DriverID              int           `json:"custid"`
-	DriverName            encodedString `json:"displayname"`
-	ClubID                int           `json:"clubid"`
-	ClubName              encodedString `json:"clubname"`
-	CarID                 int           `json:"carid"`
-	TrackID               int           `json:"trackid"`
-	TimeTrialTime         encodedString `json:"timetrial"`
-	RaceTime              encodedString `json:"race"`
-	LicenseClass          encodedString `json:"licenseclass"`
-	IRating               int           `json:"irating"`
-	TimeTrialSubsessionID int           `json:"timetrial_subsessionid"`
-}
-
 type TimeTrialRanking struct {
-	Rank          int     `json:"rank"`
-	DriverID      int     `json:"cust_id"`
-	DriverName    string  `json:"display_name"`
-	ClubID        int     `json:"club_id"`
-	ClubName      string  `json:"club_name"`
-	CarID         int     `json:"car_id"`
-	TrackID       int     `json:"track_id"`
-	BestNLapsTime laptime `json:"best_nlaps_time"`
+	Rank                  int     `json:"rank"`
+	DriverID              int     `json:"cust_id"`
+	DriverName            string  `json:"display_name"`
+	ClubID                int     `json:"club_id"`
+	ClubName              string  `json:"club_name"`
+	CarID                 int     `json:"car_id"`
+	TrackID               int     `json:"track_id"`
+	BestNLapsTime         laptime `json:"best_nlaps_time"`
+	TimeTrialSubsessionID int     `json:"timetrial_subsessionid"` // field does not exist, but allows us to keep subsession-TT-lap-fetching code
 }
 
-func (r TimeRanking) String() string {
-	return fmt.Sprintf("[ Name: %s, Race: %s, TT: %s ]", r.DriverName, r.RaceTime, r.TimeTrialTime)
+func (r TimeTrialRanking) String() string {
+	return fmt.Sprintf("[ Rank: %d, Name: %s, TT: %s ]", r.Rank, r.DriverName, r.BestNLapsTime)
 }
 
 type TimeTrialResult struct {
