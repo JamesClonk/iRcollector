@@ -26,7 +26,6 @@ type Database interface {
 	GetTimeTrialResultsBySeasonIDWeekAndCarClass(int, int, int) ([]TimeTrialResult, error)
 	UpsertTimeRanking(TimeRanking) error
 	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
-	GetTimeRankingByRaceWeekDriverAndCar(int, int, int) (TimeRanking, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	UpdateRaceWeekLastUpdateToNow(int) error
 	GetRaceWeekByID(int) (RaceWeek, error)
@@ -569,69 +568,6 @@ func (db *database) UpsertTimeRanking(r TimeRanking) error {
 	return tx.Commit()
 }
 
-func (db *database) GetTimeRankingByRaceWeekDriverAndCar(raceweekID, driverID, carID int) (TimeRanking, error) {
-	row := db.QueryRowx(`
-		select distinct
-			d.pk_driver_id,
-			d.name,
-			coalesce(d.team, ''),
-			coalesce((select min(rr.division)
-				from race_results rr
-					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
-				where rr.fk_driver_id = d.pk_driver_id
-				and rwr.fk_raceweek_id = rw.pk_raceweek_id), 10)+1 as division,
-			cl.pk_club_id,
-			cl.name,
-			rw.pk_raceweek_id,
-			rw.raceweek,
-			rw.fk_season_id,
-			rw.fk_track_id,
-			c.pk_car_id,
-			c.name,
-			c.description,
-			c.model,
-			c.make,
-			c.panel_image,
-			c.logo_image,
-			c.car_image,
-			c.abbreviation,
-			c.free_with_subscription,
-			c.retired,
-			coalesce(tr.time_trial_subsession_id, 0),
-			coalesce(tr.time_trial_fastest_lap, 0),
-			coalesce(tr.time_trial, 0),
-			coalesce((select min(rr.best_laptime)
-				from race_results rr
-					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
-				where rr.fk_driver_id = d.pk_driver_id
-				and rwr.fk_raceweek_id = rw.pk_raceweek_id
-				and rr.best_laptime > 0), coalesce(tr.race, 0)),
-			tr.license_class,
-			tr.irating
-		from time_rankings tr
-			join cars c on (tr.fk_car_id = c.pk_car_id)
-			join drivers d on (tr.fk_driver_id = d.pk_driver_id)
-			join clubs cl on (d.fk_club_id = cl.pk_club_id)
-			join raceweeks rw on (rw.pk_raceweek_id = tr.fk_raceweek_id)
-		where tr.fk_raceweek_id = $1
-		and tr.fk_driver_id = $2
-		and tr.fk_car_id = $3
-		order by d.name asc, tr.irating desc`, raceweekID, driverID, carID)
-
-	t := TimeRanking{}
-	if err := row.Scan(
-		&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team,
-		&t.Driver.Division, &t.Driver.Club.ClubID, &t.Driver.Club.Name,
-		&t.RaceWeek.RaceWeekID, &t.RaceWeek.RaceWeek, &t.RaceWeek.SeasonID, &t.RaceWeek.TrackID,
-		&t.Car.CarID, &t.Car.Name, &t.Car.Description, &t.Car.Model, &t.Car.Make,
-		&t.Car.PanelImage, &t.Car.LogoImage, &t.Car.CarImage, &t.Car.Abbreviation, &t.Car.Free, &t.Car.Retired,
-		&t.TimeTrialSubsessionID, &t.TimeTrialFastestLap, &t.TimeTrial, &t.Race, &t.LicenseClass, &t.IRating,
-	); err != nil {
-		return TimeRanking{}, err
-	}
-	return t, nil
-}
-
 func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]TimeRanking, error) {
 	rankings := make([]TimeRanking, 0)
 	rows, err := db.Queryx(`
@@ -661,25 +597,35 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 			c.abbreviation,
 			c.free_with_subscription,
 			c.retired,
-			coalesce(tr.time_trial_subsession_id, 0),
-			coalesce(tr.time_trial_fastest_lap, 0),
-			coalesce(tr.time_trial, 0),
+			0 as time_trial_subsession_id,
+			coalesce((select min(coalesce(tr.time_trial_fastest_lap, 0))
+				from time_rankings tr
+				where rw.pk_raceweek_id = tr.fk_raceweek_id
+				and tr.fk_driver_id = d.pk_driver_id), 0) as time_trial_fastest_lap,
+			coalesce((select min(coalesce(tr.time_trial, 0))
+				from time_rankings tr
+				where rw.pk_raceweek_id = tr.fk_raceweek_id
+				and tr.fk_driver_id = d.pk_driver_id), 0) as time_trial,
 			coalesce((select min(rr.best_laptime)
 				from race_results rr
 					join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
 				where rr.fk_driver_id = d.pk_driver_id
 				and rwr.fk_raceweek_id = rw.pk_raceweek_id
-				and rr.best_laptime > 0), coalesce(tr.race, 0)),
-			tr.license_class,
-			tr.irating
-		from time_rankings tr
-			join cars c on (tr.fk_car_id = c.pk_car_id)
-			join drivers d on (tr.fk_driver_id = d.pk_driver_id)
+				and rr.best_laptime > 0), coalesce((select min(coalesce(tr.race , 0))
+				from time_rankings tr
+				where rw.pk_raceweek_id = tr.fk_raceweek_id
+				and tr.fk_driver_id = d.pk_driver_id), 0)) as race,
+			'' as license_class,
+			0 as irating
+		from race_results rr
+			join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
+			join raceweeks rw on (rw.pk_raceweek_id = rwr.fk_raceweek_id)
+			join drivers d on (rr.fk_driver_id = d.pk_driver_id)
 			join clubs cl on (d.fk_club_id = cl.pk_club_id)
-			join raceweeks rw on (rw.pk_raceweek_id = tr.fk_raceweek_id)
+			join cars c on (rr.fk_car_id = c.pk_car_id)
 		where rw.fk_season_id = $1
 		and rw.raceweek = $2
-		order by d.name asc, tr.irating desc`, seasonID, week)
+		order by d.name asc`, seasonID, week)
 	if err != nil {
 		return nil, err
 	}

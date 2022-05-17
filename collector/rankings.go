@@ -1,8 +1,6 @@
 package collector
 
 import (
-	"strings"
-
 	"github.com/JamesClonk/iRcollector/database"
 	"github.com/JamesClonk/iRcollector/log"
 )
@@ -36,57 +34,18 @@ func (c *Collector) CollectTimeRankings(raceweek database.RaceWeek) {
 			for _, ranking := range rankings {
 				log.Debugf("Time trial ranking: %s", ranking)
 
-				// collect fastest TT laptime from TT subsession
-				ttFastestLap := database.Laptime(0)
-				if ranking.TimeTrialSubsessionID > 0 {
-					// check if this particular TT ranking already exists and does not need an update
-					tr, err := c.db.GetTimeRankingByRaceWeekDriverAndCar(raceweek.RaceWeekID, ranking.DriverID, ranking.CarID)
-					if err == nil && tr.TimeTrialFastestLap > 0 && tr.TimeTrialSubsessionID > 0 &&
-						tr.TimeTrial.Milliseconds() == ranking.BestNLapsTime.Milliseconds() {
-						log.Infof("Existing time trial fastest lap found, no need for querying it again: %s", tr)
-						ttFastestLap = tr.TimeTrialFastestLap
-					} else {
-						ttResult, err := c.client.GetSessionResult(ranking.TimeTrialSubsessionID)
-						if err != nil {
-							if err.Error() == "empty session result" {
-								log.Debugf("received an empty time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
-							} else {
-								log.Errorf("could not get time trial result [subsessionID:%d]: %v", ranking.TimeTrialSubsessionID, err)
-							}
-						} else {
-							if strings.ToLower(ttResult.PointsType) != "timetrial" || ttResult.SubsessionID <= 0 { // skip invalid time trial results
-								log.Errorf("invalid time trial result: %v", ttResult)
-							} else {
-								for _, simsession := range ttResult.Results {
-									if strings.ToLower(simsession.SimsessionName) != "time trial" {
-										continue // skip if not a time trial
-									}
-									for _, row := range simsession.Results {
-										if row.RacerID == ranking.DriverID {
-											if ttFastestLap > database.Laptime(int(row.BestLaptime)) {
-												ttFastestLap = database.Laptime(int(row.BestLaptime))
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-
 				// update club & driver
 				driver, ok := c.UpsertDriverAndClub(ranking.DriverName, ranking.ClubName, ranking.DriverID, ranking.ClubID)
 				if !ok {
 					continue
 				}
-
 				// upsert time ranking
 				t := database.TimeRanking{
 					Driver:                driver,
 					RaceWeek:              raceweek,
 					Car:                   car,
 					TimeTrialSubsessionID: ranking.TimeTrialSubsessionID,
-					TimeTrialFastestLap:   ttFastestLap,
+					TimeTrialFastestLap:   database.Laptime(0),
 					TimeTrial:             database.Laptime(ranking.BestNLapsTime),
 					Race:                  database.Laptime(0),
 					LicenseClass:          "",
