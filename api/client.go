@@ -193,8 +193,11 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		// old API, lets sleep a fixed amount
 		log.Debugf("sleeping for 2s because of old API call to: [%s, %s]", req.URL.Host, req.URL.RequestURI())
 		time.Sleep(2222 * time.Millisecond)
+	} else {
+		log.Debugln("could not determine ratelimit, will sleep for 1s for safety ...")
+		time.Sleep(1111 * time.Millisecond) // safety sleep
 	}
-	time.Sleep(111 * time.Millisecond) // safety sleep
+	time.Sleep(222 * time.Millisecond) // safety sleep
 
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
