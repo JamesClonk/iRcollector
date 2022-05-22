@@ -656,6 +656,7 @@ func (db *database) GetFastestTimeTrialSessionsBySeasonIDAndWeek(seasonID, week 
 		select distinct
 			d.pk_driver_id,
 			d.name,
+			coalesce(d.team, '') as team,
 			coalesce(tr.time_trial, 0) as time_trial
 		from time_rankings tr
 			join cars c on (tr.fk_car_id = c.pk_car_id)
@@ -673,7 +674,7 @@ func (db *database) GetFastestTimeTrialSessionsBySeasonIDAndWeek(seasonID, week 
 	for rows.Next() {
 		t := FastestLaptime{}
 		if err := rows.Scan(
-			&t.Driver.DriverID, &t.Driver.Name, &t.Laptime,
+			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team, &t.Laptime,
 		); err != nil {
 			return nil, err
 		}
@@ -688,6 +689,7 @@ func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) 
 		select distinct
 			d.pk_driver_id,
 			d.name,
+			coalesce(d.team, '') as team,
 			coalesce(min(rr.best_laptime), 0) as race
 		from race_results rr
 			join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
@@ -698,7 +700,7 @@ func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) 
 		where rw.fk_season_id = $1
 		and rw.raceweek = $2
 		and rr.best_laptime > 0
-		group by d.pk_driver_id, d.name
+		group by d.pk_driver_id, d.name, team
 		order by race asc, d.name asc`, seasonID, week)
 	if err != nil {
 		return nil, err
@@ -708,7 +710,7 @@ func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) 
 	for rows.Next() {
 		t := FastestLaptime{}
 		if err := rows.Scan(
-			&t.Driver.DriverID, &t.Driver.Name, &t.Laptime,
+			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team, &t.Laptime,
 		); err != nil {
 			return nil, err
 		}
