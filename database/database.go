@@ -690,6 +690,7 @@ func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) 
 			d.pk_driver_id,
 			d.name,
 			coalesce(d.team, '') as team,
+			coalesce(min(rr.division), 10)+1 as division,
 			coalesce(min(rr.best_laptime), 0) as race
 		from race_results rr
 			join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
@@ -700,7 +701,7 @@ func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) 
 		where rw.fk_season_id = $1
 		and rw.raceweek = $2
 		and rr.best_laptime > 0
-		group by d.pk_driver_id, d.name, team
+		group by d.pk_driver_id, d.name, team, division
 		order by race asc, d.name asc`, seasonID, week)
 	if err != nil {
 		return nil, err
@@ -710,7 +711,7 @@ func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) 
 	for rows.Next() {
 		t := FastestLaptime{}
 		if err := rows.Scan(
-			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team, &t.Laptime,
+			&t.Driver.DriverID, &t.Driver.Name, &t.Driver.Team, &t.Driver.Division, &t.Laptime,
 		); err != nil {
 			return nil, err
 		}
