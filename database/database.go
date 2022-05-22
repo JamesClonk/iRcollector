@@ -26,6 +26,8 @@ type Database interface {
 	GetTimeTrialResultsBySeasonIDWeekAndCarClass(int, int, int) ([]TimeTrialResult, error)
 	UpsertTimeRanking(TimeRanking) error
 	GetTimeRankingsBySeasonIDAndWeek(int, int) ([]TimeRanking, error)
+	GetFastestTimeTrialSessionsBySeasonIDAndWeek(int, int) ([]FastestLaptime, error)
+	GetFastestRaceLaptimesBySeasonIDAndWeek(int, int) ([]FastestLaptime, error)
 	InsertRaceWeek(RaceWeek) (RaceWeek, error)
 	UpdateRaceWeekLastUpdateToNow(int) error
 	GetRaceWeekByID(int) (RaceWeek, error)
@@ -646,6 +648,73 @@ func (db *database) GetTimeRankingsBySeasonIDAndWeek(seasonID, week int) ([]Time
 		rankings = append(rankings, t)
 	}
 	return rankings, nil
+}
+
+func (db *database) GetFastestTimeTrialSessionsBySeasonIDAndWeek(seasonID, week int) ([]FastestLaptime, error) {
+	laptimes := make([]FastestLaptime, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			d.pk_driver_id,
+			d.name,
+			coalesce(tr.time_trial, 0) as time_trial
+		from time_rankings tr
+			join cars c on (tr.fk_car_id = c.pk_car_id)
+			join drivers d on (tr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join raceweeks rw on (rw.pk_raceweek_id = tr.fk_raceweek_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		order by time_trial asc, d.name asc`, seasonID, week)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		t := FastestLaptime{}
+		if err := rows.Scan(
+			&t.Driver.DriverID, &t.Driver.Name, &t.Laptime,
+		); err != nil {
+			return nil, err
+		}
+		laptimes = append(laptimes, t)
+	}
+	return laptimes, nil
+}
+
+func (db *database) GetFastestRaceLaptimesBySeasonIDAndWeek(seasonID, week int) ([]FastestLaptime, error) {
+	laptimes := make([]FastestLaptime, 0)
+	rows, err := db.Queryx(`
+		select distinct
+			d.pk_driver_id,
+			d.name,
+			coalesce(min(rr.best_laptime), 0) as race
+		from race_results rr
+			join raceweek_results rwr on (rwr.subsession_id = rr.fk_subsession_id)
+			join raceweeks rw on (rw.pk_raceweek_id = rwr.fk_raceweek_id)
+			join drivers d on (rr.fk_driver_id = d.pk_driver_id)
+			join clubs cl on (d.fk_club_id = cl.pk_club_id)
+			join cars c on (rr.fk_car_id = c.pk_car_id)
+		where rw.fk_season_id = $1
+		and rw.raceweek = $2
+		and rr.best_laptime > 0
+		group by d.pk_driver_id, d.name
+		order by race asc, d.name asc`, seasonID, week)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		t := FastestLaptime{}
+		if err := rows.Scan(
+			&t.Driver.DriverID, &t.Driver.Name, &t.Laptime,
+		); err != nil {
+			return nil, err
+		}
+		laptimes = append(laptimes, t)
+	}
+	return laptimes, nil
 }
 
 func (db *database) InsertRaceWeek(raceweek RaceWeek) (RaceWeek, error) {

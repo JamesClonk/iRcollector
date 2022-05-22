@@ -265,3 +265,12 @@ func (t TimeTrialResult) String() string {
 	return fmt.Sprintf("[ Week: %d, Racer: %s, Rank: %d, TT Points: %d ]",
 		t.RaceWeek.RaceWeek, t.Driver.Name, t.Rank, t.Points)
 }
+
+type FastestLaptime struct {
+	Driver  Driver
+	Laptime Laptime `db:"laptime"`
+}
+
+func (r FastestLaptime) String() string {
+	return fmt.Sprintf("[ Name: %s, Laptime: %s ]", r.Driver.Name, r.Laptime)
+}
