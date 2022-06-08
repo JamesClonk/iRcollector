@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -55,7 +57,11 @@ func New() *Client {
 func (c *Client) LoginNG() error {
 	log.Debugf("login to members-ng ...")
 
-	var data = []byte(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, env.MustGet("IR_USERNAME"), env.MustGet("IR_PASSWORD")))
+	// https://forums.iracing.com/discussion/22109/login-form-changes
+	hash := sha256.Sum256([]byte(env.MustGet("IR_PASSWORD") + strings.ToLower(env.MustGet("IR_USERNAME"))))
+	password := base64.StdEncoding.EncodeToString(hash[:])
+	data := []byte(fmt.Sprintf(`{"email": "%s", "password": "%s"}`, env.MustGet("IR_USERNAME"), password))
+
 	req, err := http.NewRequest("POST", "https://members-ng.iracing.com/auth", bytes.NewBuffer(data))
 	if err != nil {
 		return err
