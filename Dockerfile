@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL maintainer="JamesClonk <jamesclonk@jamesclonk.ch>"
 
@@ -7,7 +7,7 @@ RUN echo "debconf debconf/frontend select noninteractive" | debconf-set-selectio
   export DEBIAN_FRONTEND=noninteractive && \
   apt-get -y $package_args update && \
   apt-get -y $package_args dist-upgrade && \
-  apt-get -y $package_args install curl ca-certificates tzdata && \
+  apt-get -y $package_args install curl ca-certificates tzdata bash vim && \
   apt-get clean && \
   find /usr/share/doc/*/* ! -name copyright | xargs rm -rf && \
   rm -rf \
@@ -18,13 +18,11 @@ RUN useradd -u 2000 -mU -s /bin/bash vcap && \
   mkdir /home/vcap/app && \
   chown vcap:vcap /home/vcap/app && \
   ln -s /home/vcap/app /app
+USER vcap
 
 WORKDIR /app
 COPY ircollector ./
 COPY database/migrations ./database/migrations/
-RUN chown vcap:vcap -R /home/vcap/app
-
-USER vcap
 
 EXPOSE 8080
 

@@ -8,6 +8,10 @@
 
     $ go get github.com/segmentio/go-loggly
 
+## Debug
+
+ Enable verbose debugging output using the __DEBUG__ environment variable, for exmaple `DEBUG=loggly`.
+
 ## License
 
  MIT

@@ -1,0 +1,46 @@
+name: Build container image
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 'build container image'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3
+    - uses: actions/setup-go@v4
+      with:
+        go-version-file: 'go.mod'
+        # go-version: '1.19' # use as fallback if no version in go.mod
+
+    # login to dockerhub
+    - name: dockerhub login
+      if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # testing
+    - name: run test
+      run: make test
+
+    # build and publish image
+    - name: build image
+      run: make image-build
+    - name: publish image
+      if: github.ref == 'refs/heads/master'
+      run: make image-publish
+
+    - name: cleanup
+      if: ${{ always() }}
+      run: |
+        rm -f ~/.docker/config.json || true
