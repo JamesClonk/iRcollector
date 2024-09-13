@@ -33,7 +33,7 @@ func main() {
 	log.Infoln("auth username:", username)
 
 	// wait before connecting to DB
-	time.Sleep(time.Second * 33)
+	time.Sleep(time.Second * 44)
 
 	// setup database
 	adapter := database.NewAdapter()

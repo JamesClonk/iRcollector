@@ -23,7 +23,7 @@ func (c *Collector) CollectTimeslots(seasonID int, results []api.RaceWeekResult)
 	}
 
 	// figure out raceweek timeslots / schedule
-	if len(results) >= 2 {
+	if len(results) > 5 {
 		sort.Slice(results, func(i, j int) bool {
 			return results[i].StartTime.Before(results[j].StartTime)
 		})
