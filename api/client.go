@@ -38,8 +38,17 @@ var (
 
 type Client struct {
 	CookieJar *cookiejar.Jar
+	Token     Token
 	mutex     *sync.Mutex
 	lastLogin time.Time
+}
+
+type Token struct {
+	AccessToken           string `json:"access_token"`
+	RefreshToken          string `json:"refresh_token"`
+	ExpiresIn             int    `json:"expires_in"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+	Scope                 string `json:"scope"`
 }
 
 func New() *Client {
@@ -82,6 +91,57 @@ func (c *Client) LoginNG() error {
 	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("login failed with HTTP [%d]", resp.StatusCode)
+	}
+	return nil
+}
+
+func (c *Client) LoginToken() error {
+	log.Debugf("login via oauth.iracing.com ...")
+
+	// https://oauth.iracing.com/oauth2/book/password_limited_flow.html
+	hash := sha256.Sum256([]byte(env.MustGet("IR_PASSWORD") + strings.ToLower(env.MustGet("IR_USERNAME"))))
+	hashedPassword := base64.StdEncoding.EncodeToString(hash[:])
+	hash = sha256.Sum256([]byte(env.MustGet("IR_CLIENT_SECRET") + strings.ToLower(env.MustGet("IR_CLIENT_ID"))))
+	hashedSecret := base64.StdEncoding.EncodeToString(hash[:])
+	data := []byte(fmt.Sprintf(`grant_type=password_limited&client_id=%s&client_secret=%s&username=%s&password=%s&scope=iracing.auth`,
+		url.QueryEscape(env.MustGet("IR_CLIENT_ID")),
+		url.QueryEscape(hashedSecret),
+		url.QueryEscape(env.MustGet("IR_USERNAME")),
+		url.QueryEscape(hashedPassword),
+	))
+
+	req, err := http.NewRequest("POST", "https://oauth.iracing.com/oauth2/token", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{
+		Jar: c.CookieJar,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(1 * time.Minute)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("login failed with HTTP [%d]", resp.StatusCode)
+	}
+
+	// read oauth token
+	data, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	token := Token{}
+	if err := json.Unmarshal(data, &token); err != nil {
+		clientRequestError.Inc()
+		log.Errorf("could not unmarshal oauth token: %s", data)
+		return err
 	}
 	return nil
 }
@@ -138,22 +198,22 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	defer c.mutex.Unlock()
 
 	// relogin if needed
+	--TODO: needs code to refresh the token if expired, instead of requesting completely new token
 	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
-		if err := c.LoginNG(); err != nil {
+		if err := c.LoginToken(); err != nil {
 			clientLoginError.Inc()
-			time.Sleep(2222 * time.Millisecond) // safety sleep
+			time.Sleep(3333 * time.Millisecond) // safety sleep
 			return nil, err
 		}
 		c.lastLogin = time.Now()
 	}
 
-	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36")
-	req.Header.Add("Referer", "https://members.iracing.com/membersite/login.jsp")
+	req.Header.Add("User-Agent", "iRcollector")
+	//req.Header.Add("Referer", "https://members.iracing.com/membersite/login.jsp")
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 	req.Header.Add("Accept-Charset", "UTF-8,utf-8;q=0.7,*;q=0.3")
 	req.Header.Add("Cache-Control", "max-age=0")
-	req.Header.Add("Cache-Control", "max-age=0")
-	req.Header.Add("Origin", "members.iracing.com")
+	//req.Header.Add("Origin", "members.iracing.com")
 	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
 
 	client := &http.Client{
@@ -178,6 +238,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		X-Ratelimit-Remaining:[239]
 		X-Ratelimit-Reset:[1641553935]
 	*/
+	--TODO: check ratelimit header names, they are now without X- ??? See https://oauth.iracing.com/oauth2/book/token_endpoint.html
 	// check ratelimiting values
 	ratelimitRemaining := resp.Header.Get("X-Ratelimit-Remaining")
 	ratelimitReset := resp.Header.Get("X-Ratelimit-Reset")
