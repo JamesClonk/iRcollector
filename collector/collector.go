@@ -77,7 +77,7 @@ func (c *Collector) Run() {
 					log.Infof("Season: %s", season)
 					found = true
 
-					// does it already exists in db?
+					// does it already exist in db?
 					s, err := c.db.GetSeasonByID(season.SeasonID)
 					if err != nil {
 						log.Errorf("could not get season [%d] from database: %v", season.SeasonID, err)
@@ -184,5 +184,44 @@ func (c *Collector) CollectSeason(seasonID int) {
 
 	for w := 0; w < 12; w++ {
 		c.CollectRaceWeek(seasonID, w, true)
+	}
+}
+
+func (c *Collector) CollectSeasons() {
+	log.Infof("collecting all current seasons ...")
+
+	series, err := c.db.GetActiveSeries()
+	if err != nil {
+		log.Errorln("could not read series information from database")
+		log.Fatalf("%v", err)
+	}
+
+	// fetch all current seasons and go through them
+	seasons, err := c.client.GetCurrentSeasons()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
+	if len(seasons) == 0 {
+		collectorErrors.Inc()
+		log.Errorf("no seasons found, couldn't get anything from iRacing!")
+	}
+	for _, series := range series {
+		namerx := regexp.MustCompile(series.SeriesRegex)
+		for _, season := range seasons {
+			if namerx.MatchString(season.SeasonName) || season.SeriesID == series.APISeriesID { // does SeasonName match seriesRegex from db? or the API provided SeriesID?
+				log.Infof("Season: %s", season)
+
+				// does it already exist in db?
+				if _, err := c.db.GetSeasonByID(season.SeasonID); err != nil {
+					log.Warnf("could not get season [%d] from database: %v", season.SeasonID, err)
+					log.Warnf("will skip that season ...")
+					continue
+				}
+
+				// collect it
+				c.CollectSeason(season.SeasonID)
+			}
+		}
 	}
 }

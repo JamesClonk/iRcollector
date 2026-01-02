@@ -60,6 +60,7 @@ func router(c *collector.Collector) *mux.Router {
 
 	r.HandleFunc("/series", showSeries(c)).Methods("GET")
 	r.HandleFunc("/seasons", showSeasons(c)).Methods("GET")
+	r.HandleFunc("/seasons", collectSeasons(c)).Methods("POST", "PUT")
 	r.HandleFunc("/season/{seasonID}", collectSeason(c)).Methods("POST", "PUT")
 	r.HandleFunc("/season/{seasonID}/week/{week}", collectWeek(c)).Methods("POST", "PUT")
 	r.HandleFunc("/season/{seasonID}/week/{week}", showWeek(c)).Methods("GET")
@@ -102,6 +103,19 @@ func showSeries(c *collector.Collector) func(rw http.ResponseWriter, req *http.R
 		rw.Header().Set("Content-Type", "application/json")
 		rw.WriteHeader(200)
 		_, _ = rw.Write(buf.Bytes())
+	}
+}
+
+func collectSeasons(c *collector.Collector) func(rw http.ResponseWriter, req *http.Request) {
+	return func(rw http.ResponseWriter, req *http.Request) {
+		if !verifyBasicAuth(rw, req) {
+			return
+		}
+
+		go c.CollectSeasons()
+		rw.Header().Set("Content-Type", "application/json")
+		rw.WriteHeader(200)
+		_, _ = rw.Write([]byte(`{ "task": "collecting all seasons ..." }`))
 	}
 }
 
