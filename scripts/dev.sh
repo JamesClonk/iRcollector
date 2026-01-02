@@ -21,5 +21,5 @@ rm -f gin-bin || true
 #gin --all run main.go
 
 rm -f iRcollector || true
-GOARCH=amd64 GOOS=linux go build -i -o iRcollector
+GOARCH=amd64 GOOS=linux go build -o iRcollector
 ./iRcollector

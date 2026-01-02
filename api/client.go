@@ -120,7 +120,7 @@ func (c *Client) LoginToken() error {
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	client := &http.Client{
-		Jar: c.CookieJar,
+		Timeout: 22 * time.Second, // https://github.com/NickBaileyMA/irplc/blob/main/iracing_oauth_client/oauth.py has 30s as default
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -128,39 +128,7 @@ func (c *Client) LoginToken() error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusTooManyRequests {
-		time.Sleep(1 * time.Minute)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("login failed with HTTP [%d]", resp.StatusCode)
-	}
-
-	// read oauth token
-	data, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	c.Token = Token{}
-	if err := json.Unmarshal(data, &c.Token); err != nil {
-		clientLoginError.Inc()
-		log.Errorf("could not unmarshal oauth token: %s", data)
-		return err
-	}
-
-	// default values
-	if c.Token.ExpiresIn == 0 {
-		c.Token.ExpiresIn = 555
-	}
-	if c.Token.RefreshTokenExpiresIn == 0 {
-		c.Token.ExpiresIn = 3456
-	}
-
-	// if we have no refresh-token, then set its expiry time to same as normal token, to force relogin before normal token expires
-	if len(c.Token.RefreshToken) == 0 {
-		c.Token.RefreshTokenExpiresIn = c.Token.ExpiresIn
-	}
-
-	return nil
+	return c.readToken(resp)
 }
 
 func (c *Client) RefreshToken() error {
@@ -182,13 +150,19 @@ func (c *Client) RefreshToken() error {
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	client := &http.Client{
-		Jar: c.CookieJar,
+		Timeout: 22 * time.Second, // https://github.com/NickBaileyMA/irplc/blob/main/iracing_oauth_client/oauth.py has 30s as default
 	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	return c.readToken(resp)
+}
+
+func (c *Client) readToken(resp *http.Response) error {
+	log.Debugf("reading tokens from oauth.iracing.com response ...")
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		time.Sleep(1 * time.Minute)
@@ -198,14 +172,15 @@ func (c *Client) RefreshToken() error {
 	}
 
 	// read oauth token
-	data, err = ioutil.ReadAll(resp.Body)
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
+
 	c.Token = Token{}
 	if err := json.Unmarshal(data, &c.Token); err != nil {
 		clientLoginError.Inc()
-		log.Errorf("could not unmarshal oauth token: %s", data)
+		log.Errorf("could not unmarshal oauth token response: %s", data)
 		return err
 	}
 
@@ -223,7 +198,7 @@ func (c *Client) RefreshToken() error {
 	}
 
 	if len(c.Token.AccessToken) == 0 {
-		return fmt.Errorf("refreshing token failed, no new access-token in response")
+		return fmt.Errorf("getting access-token failed, no access-token in response")
 	}
 	return nil
 }
@@ -281,7 +256,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 
 	// relogin after a long time, or if refresh token is about to expire
 	if c.lastLogin.Before(time.Now().Add(-2*time.Hour)) ||
-		c.lastLogin.Before(time.Now().Add(-1*time.Duration(c.Token.RefreshTokenExpiresIn)*time.Second).Add(30*time.Second)) {
+		c.lastLogin.Before(time.Now().Add(-1*time.Duration(c.Token.RefreshTokenExpiresIn)*time.Second).Add(60*time.Second)) {
 		if err := c.LoginToken(); err != nil {
 			clientLoginError.Inc()
 			time.Sleep(3 * time.Second) // safety sleep
@@ -291,7 +266,7 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		c.lastRefresh = c.lastLogin
 	}
 	// refresh token if needed
-	if c.lastRefresh.Before(time.Now().Add(-1 * time.Duration(c.Token.ExpiresIn) * time.Second).Add(30 * time.Second)) {
+	if c.lastRefresh.Before(time.Now().Add(-1 * time.Duration(c.Token.ExpiresIn) * time.Second).Add(60 * time.Second)) {
 		if err := c.RefreshToken(); err != nil {
 			clientLoginError.Inc()
 			time.Sleep(3 * time.Second) // safety sleep
@@ -300,16 +275,18 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		c.lastRefresh = time.Now()
 	}
 
+	// safety check
+	if len(c.Token.AccessToken) == 0 {
+		return nil, fmt.Errorf("no access-token found, cannot perform HTTP request against iracing API")
+	}
+
+	// add headers
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.Token.AccessToken))
 	req.Header.Add("User-Agent", "iRcollector")
-	//req.Header.Add("Referer", "https://members.iracing.com/membersite/login.jsp")
-	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-	req.Header.Add("Accept-Charset", "UTF-8,utf-8;q=0.7,*;q=0.3")
-	req.Header.Add("Cache-Control", "max-age=0")
-	//req.Header.Add("Origin", "members.iracing.com")
-	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "application/json")
 
 	client := &http.Client{
-		Jar: c.CookieJar,
+		Timeout: 22 * time.Second, // https://github.com/NickBaileyMA/irplc/blob/main/iracing_oauth_client/oauth.py has 30s as default
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -319,7 +296,14 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		clientRequestError.Inc()
+		return nil, fmt.Errorf("read body: %v", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
+		log.Debugf("API call failed, response: %s", data)
 		clientRequestError.Inc()
 		time.Sleep(2 * time.Second) // safety sleep
 		return nil, fmt.Errorf("status code: %v", resp.StatusCode)
@@ -363,11 +347,6 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	}
 	time.Sleep(111 * time.Millisecond) // safety sleep
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		clientRequestError.Inc()
-		return nil, fmt.Errorf("read body: %v", err)
-	}
 	clientRequestTotal.Inc()
 	return data, nil
 }
