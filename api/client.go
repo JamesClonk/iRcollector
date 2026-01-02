@@ -210,7 +210,7 @@ func (c *Client) FollowLink(url string) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	data, err := c.doRequest(req)
+	data, err := c.doRequest(req, true)
 	if err != nil {
 		clientRequestError.Inc()
 		return nil, err
@@ -229,7 +229,7 @@ func (c *Client) FollowLink(url string) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	return c.doRequest(req)
+	return c.doRequest(req, false)
 }
 
 func (c *Client) Get(url string) ([]byte, error) {
@@ -238,7 +238,7 @@ func (c *Client) Get(url string) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	return c.doRequest(req)
+	return c.doRequest(req, false)
 }
 
 func (c *Client) Post(url string, values url.Values) ([]byte, error) {
@@ -247,10 +247,10 @@ func (c *Client) Post(url string, values url.Values) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	return c.doRequest(req)
+	return c.doRequest(req, false)
 }
 
-func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+func (c *Client) doRequest(req *http.Request, addToken bool) ([]byte, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -281,7 +281,9 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	}
 
 	// add headers
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.Token.AccessToken))
+	if addToken {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.Token.AccessToken))
+	}
 	req.Header.Add("User-Agent", "iRcollector")
 	req.Header.Add("Accept", "application/json")
 

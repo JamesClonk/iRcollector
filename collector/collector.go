@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"os"
 	"regexp"
 	"strconv"
 	"time"
