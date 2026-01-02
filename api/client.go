@@ -37,9 +37,20 @@ var (
 )
 
 type Client struct {
-	CookieJar *cookiejar.Jar
-	mutex     *sync.Mutex
-	lastLogin time.Time
+	CookieJar   *cookiejar.Jar
+	Token       Token
+	mutex       *sync.Mutex
+	lastLogin   time.Time
+	lastRefresh time.Time
+}
+
+type Token struct {
+	AccessToken           string `json:"access_token"`
+	RefreshToken          string `json:"refresh_token"`
+	TokenType             string `json:"token_type"`
+	ExpiresIn             int    `json:"expires_in"`
+	RefreshTokenExpiresIn int    `json:"refresh_token_expires_in"`
+	Scope                 string `json:"scope"`
 }
 
 func New() *Client {
@@ -48,9 +59,10 @@ func New() *Client {
 		log.Fatalf("%v", err)
 	}
 	return &Client{
-		CookieJar: cookieJar,
-		mutex:     &sync.Mutex{},
-		lastLogin: time.Now().Add(-24 * time.Hour),
+		CookieJar:   cookieJar,
+		mutex:       &sync.Mutex{},
+		lastLogin:   time.Now().Add(-24 * time.Hour),
+		lastRefresh: time.Now().Add(-24 * time.Hour),
 	}
 }
 
@@ -86,6 +98,111 @@ func (c *Client) LoginNG() error {
 	return nil
 }
 
+func (c *Client) LoginToken() error {
+	log.Debugf("login via oauth.iracing.com ...")
+
+	// https://oauth.iracing.com/oauth2/book/password_limited_flow.html
+	hash := sha256.Sum256([]byte(env.MustGet("IR_PASSWORD") + strings.ToLower(env.MustGet("IR_USERNAME"))))
+	hashedPassword := base64.StdEncoding.EncodeToString(hash[:])
+	hash = sha256.Sum256([]byte(env.MustGet("IR_CLIENT_SECRET") + strings.ToLower(env.MustGet("IR_CLIENT_ID"))))
+	hashedSecret := base64.StdEncoding.EncodeToString(hash[:])
+	data := []byte(fmt.Sprintf(`grant_type=password_limited&client_id=%s&client_secret=%s&username=%s&password=%s&scope=iracing.auth`,
+		url.QueryEscape(env.MustGet("IR_CLIENT_ID")),
+		url.QueryEscape(hashedSecret),
+		url.QueryEscape(env.MustGet("IR_USERNAME")),
+		url.QueryEscape(hashedPassword),
+	))
+
+	req, err := http.NewRequest("POST", "https://oauth.iracing.com/oauth2/token", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{
+		Timeout: 22 * time.Second, // https://github.com/NickBaileyMA/irplc/blob/main/iracing_oauth_client/oauth.py has 30s as default
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return c.readToken(resp)
+}
+
+func (c *Client) RefreshToken() error {
+	log.Debugf("refreshing token via oauth.iracing.com ...")
+
+	// https://oauth.iracing.com/oauth2/book/token_endpoint.html#refresh-token-grant
+	hash := sha256.Sum256([]byte(env.MustGet("IR_CLIENT_SECRET") + strings.ToLower(env.MustGet("IR_CLIENT_ID"))))
+	hashedSecret := base64.StdEncoding.EncodeToString(hash[:])
+	data := []byte(fmt.Sprintf(`grant_type=refresh_token&client_id=%s&client_secret=%s&refresh_token=%s`,
+		url.QueryEscape(env.MustGet("IR_CLIENT_ID")),
+		url.QueryEscape(hashedSecret),
+		url.QueryEscape(c.Token.RefreshToken),
+	))
+
+	req, err := http.NewRequest("POST", "https://oauth.iracing.com/oauth2/token", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{
+		Timeout: 22 * time.Second, // https://github.com/NickBaileyMA/irplc/blob/main/iracing_oauth_client/oauth.py has 30s as default
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return c.readToken(resp)
+}
+
+func (c *Client) readToken(resp *http.Response) error {
+	log.Debugf("reading tokens from oauth.iracing.com response ...")
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		time.Sleep(1 * time.Minute)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("login failed with HTTP [%d]", resp.StatusCode)
+	}
+
+	// read oauth token
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	c.Token = Token{}
+	if err := json.Unmarshal(data, &c.Token); err != nil {
+		clientLoginError.Inc()
+		log.Errorf("could not unmarshal oauth token response: %s", data)
+		return err
+	}
+
+	// default values
+	if c.Token.ExpiresIn == 0 {
+		c.Token.ExpiresIn = 555
+	}
+	if c.Token.RefreshTokenExpiresIn == 0 {
+		c.Token.ExpiresIn = 3456
+	}
+
+	// if we have no refresh-token, then set its expiry time to same as normal token, to force relogin before normal token expires
+	if len(c.Token.RefreshToken) == 0 {
+		c.Token.RefreshTokenExpiresIn = c.Token.ExpiresIn
+	}
+
+	if len(c.Token.AccessToken) == 0 {
+		return fmt.Errorf("getting access-token failed, no access-token in response")
+	}
+	return nil
+}
+
 func (c *Client) FollowLink(url string) ([]byte, error) {
 	// get target link for caching first
 	req, err := http.NewRequest("GET", url, nil)
@@ -93,7 +210,7 @@ func (c *Client) FollowLink(url string) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	data, err := c.doRequest(req)
+	data, err := c.doRequest(req, true)
 	if err != nil {
 		clientRequestError.Inc()
 		return nil, err
@@ -112,7 +229,7 @@ func (c *Client) FollowLink(url string) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	return c.doRequest(req)
+	return c.doRequest(req, false)
 }
 
 func (c *Client) Get(url string) ([]byte, error) {
@@ -121,7 +238,7 @@ func (c *Client) Get(url string) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	return c.doRequest(req)
+	return c.doRequest(req, false)
 }
 
 func (c *Client) Post(url string, values url.Values) ([]byte, error) {
@@ -130,46 +247,67 @@ func (c *Client) Post(url string, values url.Values) ([]byte, error) {
 		clientRequestError.Inc()
 		return nil, err
 	}
-	return c.doRequest(req)
+	return c.doRequest(req, false)
 }
 
-func (c *Client) doRequest(req *http.Request) ([]byte, error) {
+func (c *Client) doRequest(req *http.Request, addToken bool) ([]byte, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// relogin if needed
-	if c.lastLogin.Before(time.Now().Add(-5 * time.Minute)) {
-		if err := c.LoginNG(); err != nil {
+	// relogin after a long time, or if refresh token is about to expire
+	if c.lastLogin.Before(time.Now().Add(-2*time.Hour)) ||
+		c.lastLogin.Before(time.Now().Add(-1*time.Duration(c.Token.RefreshTokenExpiresIn)*time.Second).Add(60*time.Second)) {
+		if err := c.LoginToken(); err != nil {
 			clientLoginError.Inc()
-			time.Sleep(2222 * time.Millisecond) // safety sleep
+			time.Sleep(3 * time.Second) // safety sleep
 			return nil, err
 		}
 		c.lastLogin = time.Now()
+		c.lastRefresh = c.lastLogin
+	}
+	// refresh token if needed
+	if c.lastRefresh.Before(time.Now().Add(-1 * time.Duration(c.Token.ExpiresIn) * time.Second).Add(60 * time.Second)) {
+		if err := c.RefreshToken(); err != nil {
+			clientLoginError.Inc()
+			time.Sleep(3 * time.Second) // safety sleep
+			return nil, err
+		}
+		c.lastRefresh = time.Now()
 	}
 
-	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36")
-	req.Header.Add("Referer", "https://members.iracing.com/membersite/login.jsp")
-	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-	req.Header.Add("Accept-Charset", "UTF-8,utf-8;q=0.7,*;q=0.3")
-	req.Header.Add("Cache-Control", "max-age=0")
-	req.Header.Add("Cache-Control", "max-age=0")
-	req.Header.Add("Origin", "members.iracing.com")
-	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	// safety check
+	if len(c.Token.AccessToken) == 0 {
+		return nil, fmt.Errorf("no access-token found, cannot perform HTTP request against iracing API")
+	}
+
+	// add headers
+	if addToken {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.Token.AccessToken))
+	}
+	req.Header.Add("User-Agent", "iRcollector")
+	req.Header.Add("Accept", "application/json")
 
 	client := &http.Client{
-		Jar: c.CookieJar,
+		Timeout: 22 * time.Second, // https://github.com/NickBaileyMA/irplc/blob/main/iracing_oauth_client/oauth.py has 30s as default
 	}
 	resp, err := client.Do(req)
 	if err != nil {
 		clientRequestError.Inc()
-		time.Sleep(2222 * time.Millisecond) // safety sleep
+		time.Sleep(2 * time.Second) // safety sleep
 		return nil, fmt.Errorf("failed request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		clientRequestError.Inc()
-		time.Sleep(2222 * time.Millisecond) // safety sleep
+		return nil, fmt.Errorf("read body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Debugf("API call failed, response: %s", data)
+		clientRequestError.Inc()
+		time.Sleep(2 * time.Second) // safety sleep
 		return nil, fmt.Errorf("status code: %v", resp.StatusCode)
 	}
 
@@ -179,8 +317,14 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 		X-Ratelimit-Reset:[1641553935]
 	*/
 	// check ratelimiting values
-	ratelimitRemaining := resp.Header.Get("X-Ratelimit-Remaining")
-	ratelimitReset := resp.Header.Get("X-Ratelimit-Reset")
+	ratelimitRemaining := resp.Header.Get("Ratelimit-Remaining")
+	if len(ratelimitRemaining) == 0 {
+		ratelimitRemaining = resp.Header.Get("X-Ratelimit-Remaining")
+	}
+	ratelimitReset := resp.Header.Get("Ratelimit-Reset")
+	if len(ratelimitReset) == 0 {
+		ratelimitReset = resp.Header.Get("X-Ratelimit-Reset")
+	}
 	// do we have the necessary headers? (is it members-ng?)
 	if len(ratelimitRemaining) > 0 && len(ratelimitReset) > 0 {
 		remaining, err := strconv.Atoi(ratelimitRemaining)
@@ -198,18 +342,13 @@ func (c *Client) doRequest(req *http.Request) ([]byte, error) {
 	} else if req.URL.Host == "members.iracing.com" {
 		// old API, lets sleep a fixed amount
 		log.Debugf("sleeping for 2s because of old API call to: [%s, %s]", req.URL.Host, req.URL.RequestURI())
-		time.Sleep(2222 * time.Millisecond)
+		time.Sleep(2 * time.Second)
 	} else {
 		//log.Debugln("could not determine ratelimit, will do a safety sleep ...")
 		time.Sleep(444 * time.Millisecond) // safety sleep
 	}
-	time.Sleep(222 * time.Millisecond) // safety sleep
+	time.Sleep(111 * time.Millisecond) // safety sleep
 
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		clientRequestError.Inc()
-		return nil, fmt.Errorf("read body: %v", err)
-	}
 	clientRequestTotal.Inc()
 	return data, nil
 }
